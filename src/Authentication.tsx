@@ -47,6 +47,7 @@ export class Authentication extends React.Component {
   */
 
   static defaultProps = {
+    sync: true,
     localAdapter: "idb",
     localDatabase: "local",
     // This is a default implementation that does not actually remember anything
@@ -66,7 +67,9 @@ export class Authentication extends React.Component {
       // Used to denote whether or not syncing has completed, this is important after a login before we have remote data
       synced: false,
       // Internal route path, defaults to the login screen
-      internalRoute: ROUTE_LOGIN
+      internalRoute: ROUTE_LOGIN,
+      // The current user
+      user: null
     };
 
     console.log("Using the authDb property");
@@ -84,6 +87,7 @@ export class Authentication extends React.Component {
       throw new Error("Local database name not specifed");
     }
 
+    /*
     if (
       typeof database === "object" &&
       database.constructor.name === "PouchDB"
@@ -93,6 +97,7 @@ export class Authentication extends React.Component {
       );
       return database;
     }
+    */
 
     console.log(
       "Setting up local db " + database + " using " + this.props.localAdapter
@@ -329,6 +334,22 @@ export class Authentication extends React.Component {
       }
     }
 
+    // These credentials worked, so store them so we can reload them again later
+    if (username && password) {
+      this.props.rememberMe
+        .setCredentials(username, password)
+        .then(() => {})
+        .catch(ex => console.error("Could not store credentials" + ex));
+    }
+
+    // Since we are assumed to be logged in, let's get the user document so we have it
+    try {
+      const user = await this.remoteDb.getUser(username);
+      this.setState({ user })
+    } catch (ex) {
+      console.error("An error has occurred", ex);
+    }
+
     // TODO: Add error handling
     this.remoteDb.replicate.to(this.localDb).on("complete", async () => {
       console.log("Initial replication is complete");
@@ -338,6 +359,16 @@ export class Authentication extends React.Component {
         loaded: true,
         authenticated: true
       });
+
+      if (!this.props.sync) {
+        console.log("Syncing in the <Authentication/> component is disabled.");
+        this.setState({
+          // We aren't synced, but we mark it as such for the UI to proceed
+          synced: true,
+        });
+
+        return;
+      }
 
       console.log("Setting up live sync");
 
@@ -361,7 +392,9 @@ export class Authentication extends React.Component {
 
           // Replication will pause when we are all caught up with pending changes
           if (!err && !this.state.synced) {
-            this.setState({ synced: true });
+            this.setState({
+              synced: true
+            });
           }
         })
         .on("denied", err => {
@@ -376,12 +409,6 @@ export class Authentication extends React.Component {
         .catch(ex => {
           console.error("An error has occurred setting up replication", ex);
         });
-
-      // These credentials worked, so store them so we can reload them again later
-      this.props.rememberMe
-        .setCredentials(username, password)
-        .then(() => {})
-        .catch(ex => console.error("Could not store credentials" + ex));
     });
   };
 
@@ -470,17 +497,20 @@ export class Authentication extends React.Component {
       return React.cloneElement(this.props.loading, {});
     }
 
+    const props = {
+      db: this.localDb,
+      remoteDb: this.remoteDb,
+      logout: this.logout
+      user: this.state.user,
+    };
+
+    console.log('databases', this.localDb, this.remoteDb);
+
     // We are authenticated and synced so load our application
     if (!React.isValidElement(this.props.children)) {
-      return React.createElement(this.props.children, {
-        db: this.localDb,
-        logout: this.logout
-      });
+      return React.createElement(this.props.children, props);
     } else {
-      return React.cloneElement(this.props.children, {
-        db: this.localDb,
-        logout: this.logout
-      });
+      return React.cloneElement(this.props.children, props);
     }
   }
 }
