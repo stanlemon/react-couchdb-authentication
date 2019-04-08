@@ -345,7 +345,7 @@ export class Authentication extends React.Component {
     // Since we are assumed to be logged in, let's get the user document so we have it
     try {
       const user = await this.remoteDb.getUser(username);
-      this.setState({ user })
+      this.setState({ user });
     } catch (ex) {
       console.error("An error has occurred", ex);
     }
@@ -364,7 +364,7 @@ export class Authentication extends React.Component {
         console.log("Syncing in the <Authentication/> component is disabled.");
         this.setState({
           // We aren't synced, but we mark it as such for the UI to proceed
-          synced: true,
+          synced: true
         });
 
         return;
@@ -500,11 +500,11 @@ export class Authentication extends React.Component {
     const props = {
       db: this.localDb,
       remoteDb: this.remoteDb,
-      logout: this.logout
-      user: this.state.user,
+      logout: this.logout,
+      user: this.state.user
     };
 
-    console.log('databases', this.localDb, this.remoteDb);
+    console.log("databases", this.localDb, this.remoteDb);
 
     // We are authenticated and synced so load our application
     if (!React.isValidElement(this.props.children)) {
