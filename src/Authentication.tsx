@@ -514,8 +514,6 @@ export class Authentication extends React.Component {
       user: this.state.user
     };
 
-    console.log("databases", this.localDb, this.remoteDb);
-
     // We are authenticated and synced so load our application
     if (!React.isValidElement(this.props.children)) {
       return React.createElement(this.props.children, props);
