@@ -10,9 +10,6 @@ import _ from "lodash";
 import { Authentication } from "./Authentication";
 import { LoginContainer, Login, SignUpContainer, SignUp } from "./components";
 
-// Avoids an error about trying to import after the jest environment has been torn down
-jest.useFakeTimers();
-
 const TestPouchDB = PouchDB.defaults({
   adapter: "memory"
 });
@@ -194,6 +191,8 @@ describe("<Authentication />", () => {
 
     const component = mount(
       <Authentication
+        maxUserDbRetries={2}
+        userDbRetryInterval={100}
         localDatabase="test"
         localAdapter="memory"
         url={url}
@@ -217,34 +216,45 @@ describe("<Authentication />", () => {
     component.update();
 
     // Fill in username
-    component
-      .find("#username")
-      .simulate("change", { target: { value: username } });
+    component.find("#username").simulate("change", {
+      target: {
+        value: username
+      }
+    });
 
     // Fill in email
-    component.find("#email").simulate("change", { target: { value: email } });
+    component.find("#email").simulate("change", {
+      target: {
+        value: email
+      }
+    });
 
     // Fill in password
-    component
-      .find("#password")
-      .simulate("change", { target: { value: password } });
+    component.find("#password").simulate("change", {
+      target: {
+        value: password
+      }
+    });
 
     component.find("#sign-up-button").simulate("click");
 
     // Now check for the loaded state to change
     // TODO: There needs to be a better way to do this
     await waitForExpect(() => {
-      expect(component.state().internalRoute).not.toBe("signup");
+      expect(component.state().internalRoute).toBe("login");
+      expect(component.state().error).not.toBe(null);
     });
 
-    // This should bounce us back to the Login screen because the database doesn't exist yet
+    // This should render the Login screen because the database doesn't exist yet
     component.update();
 
     expect(component.containsMatchingElement(<LoginComponent />)).toBe(true);
 
     const userDb = nano("http://127.0.0.1:3131/db/_users");
 
-    const userDocs = await userDb.list({ include_docs: true });
+    const userDocs = await userDb.list({
+      include_docs: true
+    });
     // Get just the non-internal user docs
     const users = userDocs.rows
       .filter(d => d.id.substr(0, 1) !== "_")
@@ -277,9 +287,17 @@ describe("<Authentication />", () => {
     component.update();
 
     // Fill in a non-existent username
-    component
-      .find("#username")
-      .simulate("change", { target: { value: "foobar" } });
+    component.find("#username").simulate("change", {
+      target: {
+        value: "foobar"
+      }
+    });
+
+    component.find("#password").simulate("change", {
+      target: {
+        value: "password"
+      }
+    });
 
     // Click the login button
     component.find("#login-button").simulate("click");

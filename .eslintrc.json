@@ -20,8 +20,6 @@
   "rules": {
     // Requires strict equality
     "eqeqeq": "error",
-    // TODO: Turn this back on after some refactoring and cleanup
-    "max-lines-per-function": 0,
     // If functions are too long, break them up into smaller ones
     //"max-lines-per-function": ["error", { "max": 35 }],
     // Linting shouldn't break on this, but we also want to discourage using console logging
