@@ -26,7 +26,7 @@ export function SignUp(props): JSX.Element {
         onChange={props.setPassword}
       />
       <button id="sign-up-button" onClick={props.signUp}>
-        Sign-up
+        Sign Up
       </button>
       <button id="navigate-to-login" onClick={props.navigateToLogin}>
         Return to login
