@@ -51,7 +51,9 @@ export class Authentication extends React.Component {
     localAdapter: "idb",
     localDatabase: "local",
     // This is a default implementation that does not actually remember anything
-    rememberMe: new RememberMe()
+    rememberMe: new RememberMe(),
+    maxUserDbRetries: 5,
+    userDbRetryInterval: 2500
   };
 
   constructor(props) {
@@ -168,7 +170,15 @@ export class Authentication extends React.Component {
 
           retries++;
 
-          if (retries > 5) {
+          if (retries > this.props.maxUserDbRetries) {
+            console.log(
+              "Reached maximum numbner of retry checks for the user db"
+            );
+            this.setState({
+              internalRoute: ROUTE_LOGIN,
+              error:
+                "Your user database is not setup yet, please try again later."
+            });
             userDb.close(() => {});
             return;
           }
@@ -176,7 +186,7 @@ export class Authentication extends React.Component {
           setTimeout(() => {
             console.log("Attempting to check db again");
             checkDb();
-          }, 2500);
+          }, this.props.userDbRetryInterval);
         }
       );
 
