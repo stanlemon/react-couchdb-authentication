@@ -1,5 +1,4 @@
 import * as React from "react";
-import PropTypes from "prop-types";
 import PouchDB from "pouchdb";
 import PouchDBAuthentication from "pouchdb-authentication";
 import { RememberMe } from "./RememberMe";
@@ -10,42 +9,40 @@ PouchDB.plugin(PouchDBAuthentication);
 const ROUTE_LOGIN = "login";
 const ROUTE_SIGNUP = "signup";
 
-export class Authentication extends React.Component {
-  /*
-  static propTypes = {
-    localAdapter: PropTypes.string,
-    localDatabase: PropTypes.string,
-    // This could be more general purpose but we're just using it for the remote database URL right now
-    url: (props, key, componentName, location, propFullName) => {
-      const str = props[key];
-      if (!str || /^\s*$/.test(str)) {
-        throw new Error(
-          "A valid URL must be specified for the remote database"
-        );
-      }
-    },
-    // Need a react node or element
-    login: PropTypes.oneOfType([
-      PropTypes.element,
-      PropTypes.node,
-      PropTypes.func
-    ]).isRequired,
-    // Need a react node or element
-    signup: PropTypes.oneOfType([
-      PropTypes.element,
-      PropTypes.node,
-      PropTypes.func
-    ]).isRequired,
-    // Should this be more react-specific?
-    loading: PropTypes.element.isRequired,
-    rememberMe: PropTypes.shape({
-      getCredentials: PropTypes.func.isRequired,
-      setCredentials: PropTypes.func.isRequired,
-      clearCredentials: PropTypes.func.isRequired
-    })
-  };
-  */
+enum ROUTES {
+  ROUTE_LOGIN,
+  ROUTE_SIGNUP
+}
 
+interface Props {
+  children?: React.ReactElement<{}>;
+  localAdapter: string;
+  localDatabase: string;
+  url: string;
+  sync: boolean;
+  login: React.ReactElement<{}>;
+  signup: React.ReactElement<{}>;
+  loading?: React.ReactElement<{}>;
+  rememberMe: {
+    getCredentials(): Promise<{ username: string; password: string } | false>;
+    setCredentials(username: string, password: string): Promise<boolean>;
+    clearCredentials(): Promise<boolean>;
+  };
+  maxUserDbRetries: number;
+  userDbRetryInterval: number;
+}
+
+interface State {
+  loaded: boolean;
+  authenticated: boolean;
+  synced: boolean;
+  // TODO: Make an enum of routes
+  internalRoute: string;
+  error: string;
+  user: {};
+}
+
+export class Authentication extends React.Component<Props, State> {
   static defaultProps = {
     sync: true,
     localAdapter: "idb",
@@ -56,7 +53,11 @@ export class Authentication extends React.Component {
     userDbRetryInterval: 2500
   };
 
-  constructor(props) {
+  private authDb: PouchDB.Database;
+  private localDb: PouchDB.Database;
+  private remoteDb: PouchDB.Database;
+
+  constructor(props: Props) {
     super(props);
 
     this.state = {
@@ -83,22 +84,10 @@ export class Authentication extends React.Component {
     this.remoteDb = null;
   }
 
-  newLocalDb(database) {
+  newLocalDb(database: string): PouchDB.Database {
     if (!database) {
-      throw new Error("Local database name not specifed");
+      throw new Error("Local database name not specified");
     }
-
-    /*
-    if (
-      typeof database === "object" &&
-      database.constructor.name === "PouchDB"
-    ) {
-      console.log(
-        "Local db is already a valid PouchDB instance, just passing it along"
-      );
-      return database;
-    }
-    */
 
     console.log(
       "Setting up local db " + database + " using " + this.props.localAdapter
@@ -109,7 +98,11 @@ export class Authentication extends React.Component {
     });
   }
 
-  newRemoteDb(url, username, password) {
+  newRemoteDb(
+    url: string,
+    username?: string,
+    password?: string
+  ): PouchDB.Database {
     console.log("Setting up remote db " + url);
 
     if (!url) {
@@ -119,7 +112,7 @@ export class Authentication extends React.Component {
     // Every remote database should skip setup
     const defaults = {
       skip_setup: true,
-      fetch: function(url, opts) {
+      fetch: (url: string, opts: RequestInit) => {
         // In PouchDB 7.0 they dropped this and it breaks cookie authentication, so we set this explicitly
         opts.credentials = "include";
         return PouchDB.fetch(url, opts);
@@ -137,12 +130,16 @@ export class Authentication extends React.Component {
     return new PouchDB(url, options);
   }
 
-  dbInfo(db, success, fail) {
-    db.info().then(info => {
+  dbInfo(
+    db: PouchDB.Database,
+    success: (info: {}) => void,
+    fail: (message: string) => void
+  ): void {
+    db.info().then((info: PouchDB.Core.DatabaseInfo & PouchDB.Core.Error) => {
       if (
         info &&
         info.error &&
-        (info.error == "not_found" ||
+        (info.error === "not_found" ||
           (info.error === "forbidden" &&
             info.reason &&
             (info.reason === "You are not allowed to access this db." ||
@@ -157,18 +154,21 @@ export class Authentication extends React.Component {
     });
   }
 
-  watchForUserDb(username, password, callback) {
+  watchForUserDb(
+    username: string,
+    password: string,
+    callback: (info: {}) => void
+  ): void {
     const userDb = this.getUserDb(username, password);
 
     let retries = 0;
 
-    const checkDb = () =>
+    const checkDb = (): void =>
       this.dbInfo(
         userDb,
         // Success, our database is setup
         info => {
           console.log("Success, our database is setup!", info);
-          //userDb.close(() => {});
           callback(info);
         },
         info => {
@@ -178,7 +178,7 @@ export class Authentication extends React.Component {
 
           if (retries > this.props.maxUserDbRetries) {
             console.log(
-              "Reached maximum numbner of retry checks for the user db"
+              "Reached maximum number of retry checks for the user db"
             );
             this.setState({
               internalRoute: ROUTE_LOGIN,
@@ -199,7 +199,7 @@ export class Authentication extends React.Component {
     checkDb();
   }
 
-  getUserDb(username, password) {
+  getUserDb(username: string, password: string): PouchDB.Database {
     console.log("Setting up remote db for user " + username);
 
     const remoteDbUrl = this.getUserDbUrl(username);
@@ -213,28 +213,21 @@ export class Authentication extends React.Component {
     // was the username or password that they entered incorrectly
     userDb
       .info()
-      .then(result => {
+      .then((result: PouchDB.Core.DatabaseInfo & PouchDB.Core.Error) => {
         // Database does not exist, this could be an invalid username or the database has not
         // been setup correctly.
         // result.error === 'not_found'
         // Database exists, but either the username or password is incorrect
         // result.error === 'unauthorized'
-        if (result.error) {
-          /*
-          this.setState({
-            error: "Invalid login "
-          });
-          */
-        }
       })
-      .catch(err => {
+      .catch((err: Error) => {
         console.error(err);
       });
 
     return userDb;
   }
 
-  getUserDbUrl(username) {
+  getUserDbUrl(username: string): string {
     const buffer = Buffer.from(username);
     const hexUsername = buffer.toString("hex");
 
@@ -247,10 +240,10 @@ export class Authentication extends React.Component {
     return userDbUrl;
   }
 
-  signUp = (username, password, email) => {
+  signUp = (username: string, password: string, email: string) => {
     console.log("Signing up user " + username);
 
-    this.authDb.signup(
+    this.authDb.signUp(
       username,
       password,
       {
@@ -284,21 +277,25 @@ export class Authentication extends React.Component {
         }
 
         // TODO: Check that the database exists and report an error
-        this.watchForUserDb(username, password, response => {
-          // Most likely the user has not been setup yet
-          if (response.error && response.error === "not_found") {
-            // Redirect to the login screen
-            this.setState({
-              error: null,
-              //message: "User has been created but your database is not ready yet, please check back soon.",
-              internalRoute: ROUTE_LOGIN
-            });
-            return;
-          }
+        this.watchForUserDb(
+          username,
+          password,
+          (response: PouchDB.Core.Error) => {
+            // Most likely the user has not been setup yet
+            if (response.error && response.error === "not_found") {
+              // Redirect to the login screen
+              this.setState({
+                error: null,
+                //message: "User has been created but your database is not ready yet, please check back soon.",
+                internalRoute: ROUTE_LOGIN
+              });
+              return;
+            }
 
-          console.log("Database exists, proceeding to login.", response);
-          this.login(username, password);
-        });
+            console.log("Database exists, proceeding to login.", response);
+            this.login(username, password);
+          }
+        );
       }
     );
   };
@@ -307,7 +304,7 @@ export class Authentication extends React.Component {
     console.log("Logging out...");
 
     // Logout of the remote database
-    this.remoteDb.logout().catch(ex => console.error("Unable to logout", ex));
+    this.remoteDb.logOut().catch(ex => console.error("Unable to logout", ex));
 
     // Clear any credentials we have stored
     this.props.rememberMe
@@ -331,13 +328,13 @@ export class Authentication extends React.Component {
   };
 
   // Set this as a property so we can bind it correctly as we pass it down
-  login = async (username, password) => {
+  login = async (username: string, password: string) => {
     this.remoteDb = this.getUserDb(username, password);
 
     // We use this method to set the cookie from CouchDB in the browser
     if (password) {
       try {
-        const user = await this.remoteDb.login(username, password);
+        const user = await this.remoteDb.logIn(username, password);
         const session = await this.remoteDb.getSession();
         console.log("Session after logging in", session);
       } catch (ex) {
@@ -429,7 +426,7 @@ export class Authentication extends React.Component {
     });
   };
 
-  async componentDidMount() {
+  async componentDidMount(): Promise<void> {
     const session = await this.authDb.getSession();
 
     if (session.userCtx.name) {
@@ -443,7 +440,7 @@ export class Authentication extends React.Component {
       .then(credentials => {
         // If we do not have existing credentials, mark loaded and skip login attempt
         if (credentials === false) {
-          // TODO: Revisit this, does this make sesne when a remember me implementation is set?
+          // TODO: Revisit this, does this make sense when a remember me implementation is set?
           this.setState({ loaded: true });
           return;
         }
@@ -458,7 +455,7 @@ export class Authentication extends React.Component {
       .catch(ex => console.error("Failed to request credentials " + ex));
   }
 
-  render() {
+  render(): React.ReactNode {
     // If we haven't completed our initial load yet, show a loader
     if (!this.state.loaded) {
       console.log("Waiting for initial database to load");
@@ -492,8 +489,11 @@ export class Authentication extends React.Component {
 
       const props = {
         // Switches to the sign up screen and clears out any errors
-        navigateToSignup: () =>
-          this.setState({ error: null, internalRoute: ROUTE_SIGNUP }),
+        navigateToSignUp: () =>
+          this.setState({
+            error: null,
+            internalRoute: ROUTE_SIGNUP
+          }),
         error: this.state.error,
         login: this.login
       };

@@ -1,16 +1,23 @@
 import * as React from "react";
 
-export class LoginContainer extends React.Component {
+interface Props {
+  component: React.ReactElement<{}>;
+  error: string;
+  login(username: string, password: string): void;
+  navigateToSignUp(): void;
+}
+
+export class LoginContainer extends React.Component<Props> {
   state = {
     username: "",
     password: ""
   };
 
-  render() {
+  render(): React.ReactNode {
     const props = {
       error: this.props.error,
       login: this.login,
-      navigateToSignup: this.props.navigateToSignup,
+      navigateToSignUp: this.props.navigateToSignUp,
       username: this.state.username,
       setUsername: this.setUsername,
       password: this.state.password,
@@ -24,9 +31,11 @@ export class LoginContainer extends React.Component {
     }
   }
 
-  setUsername = event => this.setState({ username: event.target.value });
+  setUsername = (event: React.FormEvent<HTMLInputElement>) =>
+    this.setState({ username: event.currentTarget.value });
 
-  setPassword = event => this.setState({ password: event.target.value });
+  setPassword = (event: React.FormEvent<HTMLInputElement>) =>
+    this.setState({ password: event.currentTarget.value });
 
   login = () => {
     console.log("Clicked login");

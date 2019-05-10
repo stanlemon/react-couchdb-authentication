@@ -1,13 +1,20 @@
 import * as React from "react";
 
-export class SignUpContainer extends React.Component {
+interface Props {
+  component: React.ReactElement<{}>;
+  error: string;
+  signUp(username: string, password: string, email: string): void;
+  navigateToLogin(): void;
+}
+
+export class SignUpContainer extends React.Component<Props> {
   state = {
     username: "",
     email: "",
     password: ""
   };
 
-  render() {
+  render(): React.ReactNode {
     const props = {
       error: this.props.error,
       signUp: this.signUp,
@@ -27,14 +34,16 @@ export class SignUpContainer extends React.Component {
     }
   }
 
-  setUsername = event => this.setState({ username: event.target.value });
+  setUsername = (event: React.FormEvent<HTMLInputElement>) =>
+    this.setState({ username: event.currentTarget.value });
 
-  setEmail = event => this.setState({ email: event.target.value });
+  setEmail = (event: React.FormEvent<HTMLInputElement>) =>
+    this.setState({ email: event.currentTarget.value });
 
-  setPassword = event => this.setState({ password: event.target.value });
+  setPassword = (event: React.FormEvent<HTMLInputElement>) =>
+    this.setState({ password: event.currentTarget.value });
 
   signUp = () => {
-    console.log("Clicked sign up");
     this.props.signUp(
       this.state.username,
       this.state.password,

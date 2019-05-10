@@ -1,6 +1,18 @@
 import * as React from "react";
 
-export function SignUp(props): JSX.Element {
+interface Props {
+  error: string;
+  username: string;
+  setUsername(event: React.FormEvent<HTMLInputElement>): void;
+  password: string;
+  setPassword(event: React.FormEvent<HTMLInputElement>): void;
+  email: string;
+  setEmail(event: React.FormEvent<HTMLInputElement>): void;
+  signUp(): void;
+  navigateToLogin(): void;
+}
+
+export function SignUp(props: Props): JSX.Element {
   return (
     <div>
       {props.error && <div id="error">{props.error}</div>}

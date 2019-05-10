@@ -130,7 +130,7 @@ describe("<Authentication />", () => {
     component
       .find(LoginComponent)
       .props()
-      .navigateToSignup();
+      .navigateToSignUp();
 
     expect(component.containsMatchingElement(<SignUpComponent />)).toBe(true);
 
