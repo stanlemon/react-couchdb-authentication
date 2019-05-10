@@ -74,7 +74,6 @@ export class Authentication extends React.Component {
       user: null
     };
 
-    console.log("Using the authDb property");
     // PouchDB instance for authenticating users against, takes a URL
     this.authDb = this.newRemoteDb(this.props.url);
 
@@ -118,7 +117,14 @@ export class Authentication extends React.Component {
     }
 
     // Every remote database should skip setup
-    const defaults = { skip_setup: true };
+    const defaults = {
+      skip_setup: true,
+      fetch: function(url, opts) {
+        // In PouchDB 7.0 they dropped this and it breaks cookie authentication, so we set this explicitly
+        opts.credentials = "include";
+        return PouchDB.fetch(url, opts);
+      }
+    };
 
     const options =
       // If a username and password is provided
@@ -331,7 +337,8 @@ export class Authentication extends React.Component {
     // We use this method to set the cookie from CouchDB in the browser
     if (password) {
       try {
-        const session = await this.remoteDb.login(username, password);
+        const user = await this.remoteDb.login(username, password);
+        const session = await this.remoteDb.getSession();
         console.log("Session after logging in", session);
       } catch (ex) {
         console.log("Attempting to login, but ran into an issue", ex);
@@ -436,8 +443,6 @@ export class Authentication extends React.Component {
       .then(credentials => {
         // If we do not have existing credentials, mark loaded and skip login attempt
         if (credentials === false) {
-          console.log("Did not find existing credentials");
-
           // TODO: Revisit this, does this make sesne when a remember me implementation is set?
           this.setState({ loaded: true });
           return;
