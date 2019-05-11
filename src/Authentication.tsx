@@ -214,14 +214,25 @@ export class Authentication extends React.Component<Props, State> {
     userDb
       .info()
       .then((result: PouchDB.Core.DatabaseInfo & PouchDB.Core.Error) => {
+        console.log("database info result", result);
         // Database does not exist, this could be an invalid username or the database has not
         // been setup correctly.
         // result.error === 'not_found'
         // Database exists, but either the username or password is incorrect
         // result.error === 'unauthorized'
+        if (result.error === "not_found") {
+          this.logout();
+          this.setState({
+            error: "User database is not accessible"
+          });
+        }
+
+        if (result.error === "unauthorized") {
+          // Nothing to do yet
+        }
       })
       .catch((err: Error) => {
-        console.error(err);
+        console.error("An error has occurred getting database info", err);
       });
 
     return userDb;
@@ -335,8 +346,7 @@ export class Authentication extends React.Component<Props, State> {
     if (password) {
       try {
         const user = await this.remoteDb.logIn(username, password);
-        const session = await this.remoteDb.getSession();
-        console.log("Session after logging in", session);
+        console.log("User after logging in", user);
       } catch (ex) {
         console.log("Attempting to login, but ran into an issue", ex);
 
@@ -344,6 +354,9 @@ export class Authentication extends React.Component<Props, State> {
           this.setState({
             error: "Invalid login "
           });
+
+          // Bail early, everything after this  is not relevant
+          return;
         }
       }
     }
@@ -358,8 +371,10 @@ export class Authentication extends React.Component<Props, State> {
 
     // Since we are assumed to be logged in, let's get the user document so we have it
     try {
-      const user = await this.remoteDb.getUser(username);
-      this.setState({ user });
+      // There is more data about the user in the _users document
+      const session = await this.remoteDb.getSession();
+      console.log("Current user session", session);
+      this.setState({ user: session.userCtx });
     } catch (ex) {
       console.error("An error has occurred", ex);
     }
@@ -428,6 +443,8 @@ export class Authentication extends React.Component<Props, State> {
 
   async componentDidMount(): Promise<void> {
     const session = await this.authDb.getSession();
+
+    console.log("componentDidMount() user session", session);
 
     if (session.userCtx.name) {
       console.log("Found an existing user session", session.userCtx);
