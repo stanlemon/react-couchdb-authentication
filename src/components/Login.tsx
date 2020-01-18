@@ -25,7 +25,7 @@ export function Login(props: Props): JSX.Element {
         type="password"
         value={props.password}
         onChange={props.setPassword}
-        onKeyPress={e => {
+        onKeyPress={(e): void => {
           // Submit the form if they hit enter
           if (e.key === "enter") {
             props.login();

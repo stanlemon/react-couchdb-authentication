@@ -9,11 +9,6 @@ PouchDB.plugin(PouchDBAuthentication);
 const ROUTE_LOGIN = "login";
 const ROUTE_SIGNUP = "signup";
 
-enum ROUTES {
-  ROUTE_LOGIN,
-  ROUTE_SIGNUP
-}
-
 interface Props {
   children?: React.ReactElement<{}>;
   localAdapter: string;
@@ -36,7 +31,6 @@ interface State {
   loaded: boolean;
   authenticated: boolean;
   synced: boolean;
-  // TODO: Make an enum of routes
   internalRoute: string;
   error: string;
   user: {};
@@ -112,7 +106,7 @@ export class Authentication extends React.Component<Props, State> {
     // Every remote database should skip setup
     const defaults = {
       skip_setup: true,
-      fetch: (url: string, opts: RequestInit) => {
+      fetch: (url: string, opts: RequestInit): Promise<Response> => {
         // In PouchDB 7.0 they dropped this and it breaks cookie authentication, so we set this explicitly
         opts.credentials = "include";
         return PouchDB.fetch(url, opts);
@@ -185,7 +179,7 @@ export class Authentication extends React.Component<Props, State> {
               error:
                 "Your user database is not setup yet, please try again later."
             });
-            userDb.close(() => {});
+            userDb.close();
             return;
           }
 
@@ -251,7 +245,7 @@ export class Authentication extends React.Component<Props, State> {
     return userDbUrl;
   }
 
-  signUp = (username: string, password: string, email: string) => {
+  signUp = (username: string, password: string, email: string): void => {
     console.log("Signing up user " + username);
 
     this.authDb.signUp(
@@ -262,7 +256,7 @@ export class Authentication extends React.Component<Props, State> {
           email
         }
       },
-      (error, response) => {
+      error => {
         // Check for error status = 409
         if (error) {
           // The document, aka user, already exists in the users db
@@ -311,7 +305,7 @@ export class Authentication extends React.Component<Props, State> {
     );
   };
 
-  logout = () => {
+  logout = (): void => {
     console.log("Logging out...");
 
     // Logout of the remote database
@@ -325,7 +319,7 @@ export class Authentication extends React.Component<Props, State> {
     // Destroy our local database
     this.localDb
       .destroy()
-      .then(response => {
+      .then(() => {
         this.localDb = this.newLocalDb(this.props.localDatabase);
 
         // Clear our database instances and let our application know we are no longer authenticated
@@ -339,7 +333,7 @@ export class Authentication extends React.Component<Props, State> {
   };
 
   // Set this as a property so we can bind it correctly as we pass it down
-  login = async (username: string, password: string) => {
+  login = async (username: string, password: string): Promise<void> => {
     this.remoteDb = this.getUserDb(username, password);
 
     // We use this method to set the cookie from CouchDB in the browser
@@ -365,7 +359,6 @@ export class Authentication extends React.Component<Props, State> {
     if (username && password) {
       this.props.rememberMe
         .setCredentials(username, password)
-        .then(() => {})
         .catch(ex => console.error("Could not store credentials" + ex));
     }
 
@@ -486,7 +479,7 @@ export class Authentication extends React.Component<Props, State> {
 
         const props = {
           // Switches to the login screen and clears out any errors
-          navigateToLogin: () =>
+          navigateToLogin: (): void =>
             this.setState({
               error: null,
               internalRoute: ROUTE_LOGIN
@@ -506,7 +499,7 @@ export class Authentication extends React.Component<Props, State> {
 
       const props = {
         // Switches to the sign up screen and clears out any errors
-        navigateToSignUp: () =>
+        navigateToSignUp: (): void =>
           this.setState({
             error: null,
             internalRoute: ROUTE_SIGNUP

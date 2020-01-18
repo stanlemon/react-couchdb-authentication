@@ -14,20 +14,23 @@ const TestPouchDB = PouchDB.defaults({
   adapter: "memory"
 });
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 PouchDB.plugin(require("pouchdb-adapter-memory"));
 
 // Visual components for use in tests
-const LoginComponent = props => <LoginContainer {...props} component={Login} />;
-const SignUpComponent = props => (
+const LoginComponent = (props): React.ReactElement<{}> => (
+  <LoginContainer {...props} component={Login} />
+);
+const SignUpComponent = (props): React.ReactElement<{}> => (
   <SignUpContainer {...props} component={SignUp} />
 );
-const LoadingComponent = () => <div>Loading...</div>;
+const LoadingComponent = (): React.ReactElement<{}> => <div>Loading...</div>;
 
 describe("<Authentication />", () => {
   const app = express();
   let server;
 
-  beforeAll(async done => {
+  beforeAll(done => {
     app.use(
       "/db",
       ExpressPouchDB(TestPouchDB, {
@@ -37,7 +40,7 @@ describe("<Authentication />", () => {
 
     server = app.listen(3131, () => {
       // Create the main database that we'll use for our connection
-      const mainDB = new TestPouchDB("main");
+      new TestPouchDB("main");
 
       done();
     });
@@ -50,7 +53,7 @@ describe("<Authentication />", () => {
   });
 
   it("Throws an error when a database is not specified", () => {
-    const t = () => {
+    const t = (): void => {
       shallow(
         <Authentication
           localDatabase="test"
@@ -67,7 +70,7 @@ describe("<Authentication />", () => {
     expect(t).toThrow(Error);
   });
 
-  it("Component has <Loading /> when initialized", async done => {
+  it("Component has <Loading /> when initialized", async () => {
     const component = shallow(
       <Authentication
         localDatabase="test"
@@ -81,11 +84,9 @@ describe("<Authentication />", () => {
 
     // Initially the component shows a loading, it has to make a credentials call next
     expect(component.containsMatchingElement(<LoadingComponent />)).toBe(true);
-
-    done();
   });
 
-  it("Component renders <Login /> after loading", async done => {
+  it("Component renders <Login /> after loading", async () => {
     const component = shallow(
       <Authentication
         localDatabase="test"
@@ -104,11 +105,9 @@ describe("<Authentication />", () => {
     });
 
     expect(component.containsMatchingElement(<LoginComponent />)).toBe(true);
-
-    done();
   });
 
-  it("Component renders <Signup /> when navigated to", async done => {
+  it("Component renders <Signup /> when navigated to", async () => {
     const component = shallow(
       <Authentication
         localDatabase="test"
@@ -133,11 +132,9 @@ describe("<Authentication />", () => {
       .navigateToSignUp();
 
     expect(component.containsMatchingElement(<SignUpComponent />)).toBe(true);
-
-    done();
   });
 
-  it("Can submit <Signup />, but errors out with empty data", async done => {
+  it("Can submit <Signup />, but errors out with empty data", async () => {
     const url = "http://localhost:3131/db/main";
 
     const component = mount(
@@ -178,11 +175,9 @@ describe("<Authentication />", () => {
         .text()
         .trim()
     ).toBe("You must provide a username");
-
-    done();
   });
 
-  it("Can submit <Signup /> and creates user doc", async done => {
+  it("Can submit <Signup /> and creates user doc", async () => {
     const url = "http://localhost:3131/db/main";
 
     const username = "test";
@@ -262,11 +257,9 @@ describe("<Authentication />", () => {
 
     // Our user doc exists in the database!
     expect(_.find(users, _.matchesProperty("name", username))).not.toBe(null);
-
-    done();
   });
 
-  it("Can submit <Login />, but errors out with an invalid login", async done => {
+  it("Can submit <Login />, but errors out with an invalid login", async () => {
     const component = mount(
       <Authentication
         localDatabase="test"
@@ -335,7 +328,5 @@ describe("<Authentication />", () => {
 
     // There shouldn't be any errors on the login screen after navigating away and coming back
     expect(component.find("#error").length).toBe(0);
-
-    done();
   });
 });
