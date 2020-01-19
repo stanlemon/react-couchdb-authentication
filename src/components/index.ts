@@ -1,4 +1,4 @@
 export * from "./SignUp";
-export * from "./SignUpContainer";
+export * from "./SignUpView";
 export * from "./Login";
-export * from "./LoginContainer";
+export * from "./LoginView";

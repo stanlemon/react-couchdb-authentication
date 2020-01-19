@@ -1,0 +1,12 @@
+GET http://localhost:5984/_all_dbs
+Content-Type: application/json
+
+###
+
+GET http://stan:password@localhost:5984/userdb-7374616e/_all_docs
+Content-Type: application/json
+
+###
+
+GET http://stan@localhost:5984/userdb-7374616e/test
+Content-Type: application/json

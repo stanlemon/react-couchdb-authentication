@@ -1,492 +1,368 @@
 import * as React from "react";
 import PouchDB from "pouchdb";
-import PouchDBAuthentication from "pouchdb-authentication";
-import { RememberMe } from "./RememberMe";
-
-// We only use the signUp method, maybe we don't need this?
-PouchDB.plugin(PouchDBAuthentication);
+import retry from "async-retry";
+import fetch from "isomorphic-fetch";
 
 const ROUTE_LOGIN = "login";
 const ROUTE_SIGNUP = "signup";
 
-enum ROUTES {
-  ROUTE_LOGIN,
-  ROUTE_SIGNUP
-}
-
 interface Props {
+  /**
+   * An application that requires authentication.
+   */
   children?: React.ReactElement<{}>;
-  localAdapter: string;
-  localDatabase: string;
+  /**
+   * Adapter for use by the local PouchDB instance, defaults to "idb".
+   */
+  adapter: string;
+  /**
+   * URL of the remote CouchDB instance to use for authentication.
+   */
   url: string;
+  /**
+   * In debug mode info logs go to the console.
+   */
+  debug: boolean;
+  /**
+   * Whether or not to sync the user's database locally, defaults to true.
+   */
   sync: boolean;
-  login: React.ReactElement<{}>;
-  signup: React.ReactElement<{}>;
+  /**
+   * A component to be used for the login screen.
+   */
+  login: React.ReactElement<{
+    error: string;
+    login(username: string, password: string): void;
+    navigateToSignUp(): void;
+  }>;
+  /**
+   * A component to be used for the signup screen.
+   */
+  signup: React.ReactElement<{
+    error: string;
+    signUp(username: string, password: string, email: string): void;
+    navigateToLogin(): void;
+  }>;
+  /**
+   * A component to be used when loading, defaults to a fragment with the text "Loading...".
+   */
   loading?: React.ReactElement<{}>;
-  rememberMe: {
-    getCredentials(): Promise<{ username: string; password: string } | false>;
-    setCredentials(username: string, password: string): Promise<boolean>;
-    clearCredentials(): Promise<boolean>;
-  };
-  maxUserDbRetries: number;
-  userDbRetryInterval: number;
 }
 
 interface State {
+  /**
+   * Whether or not the first call to check for a session to the remote CouchDB instance has been made.
+   */
   loaded: boolean;
-  authenticated: boolean;
-  synced: boolean;
-  // TODO: Make an enum of routes
+  /**
+   * Used to track whether the user is viewing the login or sign up screen.
+   */
   internalRoute: string;
+  /**
+   * An error message if something has gone wrong.
+   */
   error: string;
-  user: {};
+  /**
+   * Whether or not the user is currently authenticated to the remote CouchDB instance.
+   */
+  authenticated: boolean;
+  /**
+   * Current authenticated user.
+   */
+  user: {
+    /**
+     * Current authenticated user's name (used as part of it's document).
+     */
+    name: string;
+  };
 }
 
+export const AuthenticationContext = React.createContext({});
+
+/**
+ * Wrap components behind CouchDB authentication and sync the user's database locally.
+ */
 export class Authentication extends React.Component<Props, State> {
   static defaultProps = {
+    loading: <>Loading...</>,
+    debug: false,
     sync: true,
-    localAdapter: "idb",
-    localDatabase: "local",
-    // This is a default implementation that does not actually remember anything
-    rememberMe: new RememberMe(),
-    maxUserDbRetries: 5,
-    userDbRetryInterval: 2500
+    adapter: "idb"
   };
 
-  private authDb: PouchDB.Database;
+  state = {
+    // If errors bubble up and need to be provided to the login screen
+    error: null,
+    // Used to denote before/after we've attempted an initial login
+    loaded: false,
+    // Whether or not a user is logged in
+    authenticated: false,
+    // User object, if they are logged in
+    user: null,
+    // Internal route path, defaults to the login screen
+    internalRoute: ROUTE_LOGIN
+  };
+
   private localDb: PouchDB.Database;
   private remoteDb: PouchDB.Database;
+  private syncHandler: PouchDB.Replication.Sync<{}>;
+  private checkSessionInterval: number;
 
-  constructor(props: Props) {
-    super(props);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private log(...args: any): void {
+    if (this.props.debug) {
+      // eslint-disable-next-line no-console
+      console.log.apply(null, args);
+    }
+  }
 
-    this.state = {
-      // If errors bubble up and need to be provided to the login screen
-      error: null,
-      // Used to denote before/after we've attempted an initial login
-      loaded: false,
-      // Used to denote whether or not we have a valid couchdb username/password
-      authenticated: false,
-      // Used to denote whether or not syncing has completed, this is important after a login before we have remote data
-      synced: false,
-      // Internal route path, defaults to the login screen
-      internalRoute: ROUTE_LOGIN,
-      // The current user
-      user: null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private error(...args: any): void {
+    if (this.props.debug) {
+      // eslint-disable-next-line no-console
+      console.error.apply(null, args);
+    }
+  }
+
+  private getUserDb(username: string): string {
+    const buffer = Buffer.from(username);
+    const hexUsername = buffer.toString("hex");
+    return "userdb-" + hexUsername;
+  }
+
+  private getUserDbUrl(username: string): string {
+    return (
+      this.props.url.substring(0, this.props.url.lastIndexOf("/") + 1) +
+      this.getUserDb(username)
+    );
+  }
+
+  private signUp = async (
+    username: string,
+    password: string,
+    email: string
+  ): Promise<void> => {
+    if (!username || !password || !email) {
+      this.setState({
+        error: "Username, password and email are required fields."
+      });
+      return;
+    }
+
+    const userId = "org.couchdb.user:" + username;
+
+    const user = {
+      name: username,
+      password,
+      roles: [],
+      type: "user",
+      _id: userId,
+      // TODO: Allow for any metadata
+      metadata: { email }
     };
 
-    // PouchDB instance for authenticating users against, takes a URL
-    this.authDb = this.newRemoteDb(this.props.url);
+    try {
+      const response = await this.fetch<{
+        error?: string;
+        reason?: string;
+        ok?: boolean;
+      }>(this.props.url + "_users/" + userId, {
+        method: "PUT",
+        body: JSON.stringify(user)
+      });
 
-    // PouchDB instance for local data storage (will use localAdapter property)
-    this.localDb = this.newLocalDb(this.props.localDatabase);
-    // PouchDB instance for syncing to/from
-    this.remoteDb = null;
-  }
+      if (response.error) {
+        //{error: "conflict", reason: "Document update conflict."}
+        this.setState({ error: response.reason });
+        return;
+      }
 
-  newLocalDb(database: string): PouchDB.Database {
-    if (!database) {
-      throw new Error("Local database name not specified");
+      if (!response.ok) {
+        this.setState({ error: "An unknown error has occurred" });
+      }
+
+      await this.checkForDb(username);
+
+      await this.login(username, password);
+    } catch (err) {
+      this.error(err);
     }
+  };
 
-    console.log(
-      "Setting up local db " + database + " using " + this.props.localAdapter
+  private async checkForDb(username: string): Promise<void> {
+    await retry(
+      async () => {
+        const info = await this.fetch<{ error: string; reason: string }>(
+          this.getUserDbUrl(username)
+        );
+
+        const isFound =
+          info.error === "not_found" ||
+          (info.error === "forbidden" &&
+            info.reason &&
+            (info.reason === "You are not allowed to access this db." ||
+              info.reason === "_reader access is required for this request"));
+
+        if (!isFound) {
+          throw Error("Cannot find database " + username);
+        }
+
+        return info;
+      },
+      { retries: 5 }
     );
-
-    return new PouchDB(database, {
-      adapter: this.props.localAdapter
-    });
   }
 
-  newRemoteDb(
-    url: string,
-    username?: string,
-    password?: string
-  ): PouchDB.Database {
-    console.log("Setting up remote db " + url);
+  private fetch<T>(url: string, options: {} = {}): Promise<T> {
+    return fetch(url, {
+      ...options,
+      ...{
+        cache: "no-cache",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json"
+        }
+      }
+    }).then(r => r.json());
+  }
 
-    if (!url) {
-      throw new Error("Remote database url not specified");
+  private async checkSession(): Promise<void> {
+    try {
+      const session = await this.fetch<{ userCtx: { name: string } }>(
+        this.props.url + "_session"
+      );
+      this.log("User session", session);
+
+      const isLoggedIn = !!session.userCtx.name;
+
+      this.setState({
+        loaded: true,
+        authenticated: isLoggedIn,
+        user: session.userCtx
+      });
+
+      // If we are logged in and have not yet setup our remote db connection, set it up
+      if (isLoggedIn && !this.remoteDb) {
+        this.setupDb();
+      }
+    } catch (err) {
+      this.error(err);
+      this.setState({ loaded: true, user: null, authenticated: false });
+    }
+  }
+
+  private logout = async (): Promise<void> => {
+    try {
+      await this.fetch(this.props.url + "_session", {
+        method: "DELETE"
+      });
+
+      // Clear the user and redirect them to our login screen
+      this.setState({
+        user: null,
+        authenticated: false,
+        internalRoute: ROUTE_LOGIN
+      });
+    } catch (err) {
+      this.error(err);
+    }
+  };
+
+  private login = async (username: string, password: string): Promise<void> => {
+    if (!username || !password) {
+      this.setState({ error: "Invalid login" });
+      return;
     }
 
-    // Every remote database should skip setup
-    const defaults = {
+    try {
+      const user = await this.fetch<{ name: string }>(
+        this.props.url + "_session",
+        {
+          method: "POST",
+          body: JSON.stringify({ username, password })
+        }
+      );
+
+      this.setState({ authenticated: true, user });
+
+      this.setupDb();
+    } catch (err) {
+      this.setState({ authenticated: false, user: null });
+      this.error(err);
+    }
+  };
+
+  private async setupDb(): Promise<void> {
+    this.localDb = new PouchDB("user", {
+      adapter: this.props.adapter
+    });
+
+    const opts = {
       skip_setup: true,
-      fetch: (url: string, opts: RequestInit) => {
+      fetch: (url: string, opts: RequestInit): Promise<Response> => {
         // In PouchDB 7.0 they dropped this and it breaks cookie authentication, so we set this explicitly
         opts.credentials = "include";
         return PouchDB.fetch(url, opts);
       }
     };
 
-    const options =
-      // If a username and password is provided
-      username && password
-        ? // Append auth options to the connections
-          { ...defaults, auth: { username, password } }
-        : // Otherwise just use the defaults
-          defaults;
+    const userDbUrl = this.getUserDbUrl(this.state.user.name);
 
-    return new PouchDB(url, options);
-  }
+    this.remoteDb = new PouchDB(userDbUrl, opts);
 
-  dbInfo(
-    db: PouchDB.Database,
-    success: (info: {}) => void,
-    fail: (message: string) => void
-  ): void {
-    db.info().then((info: PouchDB.Core.DatabaseInfo & PouchDB.Core.Error) => {
-      if (
-        info &&
-        info.error &&
-        (info.error === "not_found" ||
-          (info.error === "forbidden" &&
-            info.reason &&
-            (info.reason === "You are not allowed to access this db." ||
-              info.reason === "_reader access is required for this request")))
-      ) {
-        fail(
-          "Authentication error, you are not allowed to access this database (yet)."
-        );
-      } else {
-        success(info);
-      }
-    });
-  }
-
-  watchForUserDb(
-    username: string,
-    password: string,
-    callback: (info: {}) => void
-  ): void {
-    const userDb = this.getUserDb(username, password);
-
-    let retries = 0;
-
-    const checkDb = (): void =>
-      this.dbInfo(
-        userDb,
-        // Success, our database is setup
-        info => {
-          console.log("Success, our database is setup!", info);
-          callback(info);
-        },
-        info => {
-          console.log("Fail, our database is not setup yet!", info);
-
-          retries++;
-
-          if (retries > this.props.maxUserDbRetries) {
-            console.log(
-              "Reached maximum number of retry checks for the user db"
-            );
-            this.setState({
-              internalRoute: ROUTE_LOGIN,
-              error:
-                "Your user database is not setup yet, please try again later."
-            });
-            userDb.close(() => {});
-            return;
-          }
-
-          setTimeout(() => {
-            console.log("Attempting to check db again");
-            checkDb();
-          }, this.props.userDbRetryInterval);
-        }
-      );
-
-    checkDb();
-  }
-
-  getUserDb(username: string, password: string): PouchDB.Database {
-    console.log("Setting up remote db for user " + username);
-
-    const remoteDbUrl = this.getUserDbUrl(username);
-
-    const userDb = this.newRemoteDb(remoteDbUrl, username, password);
-
-    // Now we'll check to see if the user/password combo we have works
-    // If it does, we'll get info on the database, otherwise we'll get a not_found
-    // which is essentially an invalid login.
-    // For security reasons we won't even attempt to provide more detail as to if it
-    // was the username or password that they entered incorrectly
-    userDb
-      .info()
-      .then((result: PouchDB.Core.DatabaseInfo & PouchDB.Core.Error) => {
-        console.log("database info result", result);
-        // Database does not exist, this could be an invalid username or the database has not
-        // been setup correctly.
-        // result.error === 'not_found'
-        // Database exists, but either the username or password is incorrect
-        // result.error === 'unauthorized'
-        if (result.error === "not_found") {
-          this.logout();
-          this.setState({
-            error: "User database is not accessible"
-          });
-        }
-
-        if (result.error === "unauthorized") {
-          // Nothing to do yet
-        }
-      })
-      .catch((err: Error) => {
-        console.error("An error has occurred getting database info", err);
-      });
-
-    return userDb;
-  }
-
-  getUserDbUrl(username: string): string {
-    const buffer = Buffer.from(username);
-    const hexUsername = buffer.toString("hex");
-
-    // User specific db, this follows couchdb_peruser convention
-    const userDbUrl =
-      this.props.url.substring(0, this.props.url.lastIndexOf("/") + 1) +
-      "userdb-" +
-      hexUsername;
-
-    return userDbUrl;
-  }
-
-  signUp = (username: string, password: string, email: string) => {
-    console.log("Signing up user " + username);
-
-    this.authDb.signUp(
-      username,
-      password,
-      {
-        metadata: {
-          email
-        }
-      },
-      (error, response) => {
-        // Check for error status = 409
-        if (error) {
-          // The document, aka user, already exists in the users db
-          if (error && error.error === "conflict") {
-            this.setState({ error: "Username is already taken" });
-            return;
-          }
-
-          // Specific authentication error
-          if (error && error.error && error.name === "authentication_error") {
-            this.setState({
-              error: error.message
-            });
-            return;
-          }
-
-          // Unknown, log it so we can take a closer look if needed
-          console.info("An error occurred signing up", JSON.stringify(error));
-          this.setState({
-            error: "An error occurred while signing up"
-          });
-          return;
-        }
-
-        // TODO: Check that the database exists and report an error
-        this.watchForUserDb(
-          username,
-          password,
-          (response: PouchDB.Core.Error) => {
-            // Most likely the user has not been setup yet
-            if (response.error && response.error === "not_found") {
-              // Redirect to the login screen
-              this.setState({
-                error: null,
-                //message: "User has been created but your database is not ready yet, please check back soon.",
-                internalRoute: ROUTE_LOGIN
-              });
-              return;
-            }
-
-            console.log("Database exists, proceeding to login.", response);
-            this.login(username, password);
-          }
-        );
-      }
-    );
-  };
-
-  logout = () => {
-    console.log("Logging out...");
-
-    // Logout of the remote database
-    this.remoteDb.logOut().catch(ex => console.error("Unable to logout", ex));
-
-    // Clear any credentials we have stored
-    this.props.rememberMe
-      .clearCredentials()
-      .catch(ex => console.error("Could not reset credentials " + ex));
-
-    // Destroy our local database
-    this.localDb
-      .destroy()
-      .then(response => {
-        this.localDb = this.newLocalDb(this.props.localDatabase);
-
-        // Clear our database instances and let our application know we are no longer authenticated
-        this.setState({
-          authenticated: false
-        });
-      })
-      .catch(err => {
-        console.log(err);
-      });
-  };
-
-  // Set this as a property so we can bind it correctly as we pass it down
-  login = async (username: string, password: string) => {
-    this.remoteDb = this.getUserDb(username, password);
-
-    // We use this method to set the cookie from CouchDB in the browser
-    if (password) {
-      try {
-        const user = await this.remoteDb.logIn(username, password);
-        console.log("User after logging in", user);
-      } catch (ex) {
-        console.log("Attempting to login, but ran into an issue", ex);
-
-        if (ex.error && ex.error === "unauthorized") {
-          this.setState({
-            error: "Invalid login "
-          });
-
-          // Bail early, everything after this  is not relevant
-          return;
-        }
-      }
-    }
-
-    // These credentials worked, so store them so we can reload them again later
-    if (username && password) {
-      this.props.rememberMe
-        .setCredentials(username, password)
-        .then(() => {})
-        .catch(ex => console.error("Could not store credentials" + ex));
-    }
-
-    // Since we are assumed to be logged in, let's get the user document so we have it
-    try {
-      // There is more data about the user in the _users document
-      const session = await this.remoteDb.getSession();
-      console.log("Current user session", session);
-      this.setState({ user: session.userCtx });
-    } catch (ex) {
-      console.error("An error has occurred", ex);
-    }
-
-    // TODO: Add error handling
-    this.remoteDb.replicate.to(this.localDb).on("complete", async () => {
-      console.log("Initial replication is complete");
-
-      this.setState({
-        error: null,
-        loaded: true,
-        authenticated: true
-      });
-
-      if (!this.props.sync) {
-        console.log("Syncing in the <Authentication/> component is disabled.");
-        this.setState({
-          // We aren't synced, but we mark it as such for the UI to proceed
-          synced: true
-        });
-
-        return;
-      }
-
-      console.log("Setting up live sync");
-
-      // Make our local database replicate to/from our user's remote database
-      this.localDb
-        .sync(this.remoteDb, {
-          // Receive replication events after initial sync, so that we get ongoing changes
-          live: true,
-          // When errors occur, like we lose the network because we are offline, attempt to retry
-          retry: true
-        })
-        .on("complete", info => {
-          // This should never happen while we have live = true
-          console.log("Syncing is complete", info);
-        })
-        .on("active", () => {
-          console.log("Replication is active");
-        })
-        .on("paused", err => {
-          console.log("Replication is paused", err);
-
-          // Replication will pause when we are all caught up with pending changes
-          if (!err && !this.state.synced) {
-            this.setState({
-              synced: true
-            });
-          }
-        })
-        .on("denied", err => {
-          console.log("Replicated denied", err);
-        })
-        .on("change", change => {
-          console.log("Replication change received", change);
-        })
-        .on("error", err => {
-          console.error("An error has occurred setting up replication", err);
-        })
-        .catch(ex => {
-          console.error("An error has occurred setting up replication", ex);
-        });
-    });
-  };
-
-  async componentDidMount(): Promise<void> {
-    const session = await this.authDb.getSession();
-
-    console.log("componentDidMount() user session", session);
-
-    if (session.userCtx.name) {
-      console.log("Found an existing user session", session.userCtx);
-      await this.login(session.userCtx.name, null);
+    if (!this.props.sync) {
+      this.log("Sync is disabled");
       return;
     }
 
-    this.props.rememberMe
-      .getCredentials()
-      .then(credentials => {
-        // If we do not have existing credentials, mark loaded and skip login attempt
-        if (credentials === false) {
-          // TODO: Revisit this, does this make sense when a remember me implementation is set?
-          this.setState({ loaded: true });
-          return;
-        }
+    this.syncHandler = PouchDB.sync(this.localDb, this.remoteDb, {
+      live: true,
+      retry: true
+    });
 
-        console.log("Found existing credentials for " + credentials.username);
+    this.syncHandler
+      .on("change", info => this.log("Change", info))
+      .on("paused", err => this.error("Paused", err))
+      .on("complete", info => this.log("Complete", info))
+      .on("error", err => this.error("Error", err));
+  }
 
-        // If we have login credentials stored in the, lets attempt a login
-        const { username, password } = credentials;
+  componentDidMount(): void {
+    if (!this.props.url) {
+      throw new Error("A url to a couchdb instance is required");
+    }
 
-        this.login(username, password);
-      })
-      .catch(ex => console.error("Failed to request credentials " + ex));
+    this.checkSession();
+
+    this.checkSessionInterval = window.setInterval(() => {
+      this.checkSession();
+    }, 15000);
+  }
+
+  async componentWillUnmount(): Promise<void> {
+    clearInterval(this.checkSessionInterval);
+
+    // Will not be set if sync has been disabled
+    if (this.syncHandler) {
+      await this.syncHandler.cancel();
+    }
+
+    await this.remoteDb.close();
   }
 
   render(): React.ReactNode {
     // If we haven't completed our initial load yet, show a loader
     if (!this.state.loaded) {
-      console.log("Waiting for initial database to load");
+      this.log("Waiting for initial database to load");
       return this.props.loading;
     }
 
     // We have loaded our remote database but we are not authenticated
     if (!this.state.authenticated) {
       if (this.state.internalRoute === ROUTE_SIGNUP) {
-        console.log("Not authenticated, on sign up screen");
-
         const props = {
           // Switches to the login screen and clears out any errors
-          navigateToLogin: () =>
+          navigateToLogin: (): void =>
             this.setState({
               error: null,
               internalRoute: ROUTE_LOGIN
@@ -502,11 +378,9 @@ export class Authentication extends React.Component<Props, State> {
         }
       }
 
-      console.log("Not authenticated, on login screen");
-
       const props = {
         // Switches to the sign up screen and clears out any errors
-        navigateToSignUp: () =>
+        navigateToSignUp: (): void =>
           this.setState({
             error: null,
             internalRoute: ROUTE_SIGNUP
@@ -523,24 +397,27 @@ export class Authentication extends React.Component<Props, State> {
       }
     }
 
-    // If we are authenticated but have not finished syncing, show a loader
-    if (!this.state.synced) {
-      console.log("Waiting for authenticated database to sync");
-      return React.cloneElement(this.props.loading, {});
-    }
-
     const props = {
       db: this.localDb,
-      remoteDb: this.remoteDb,
       logout: this.logout,
       user: this.state.user
     };
 
+    // TODO: Remove the props overrides, the Context should be the only way to get these.
+
     // We are authenticated and synced so load our application
     if (!React.isValidElement(this.props.children)) {
-      return React.createElement(this.props.children, props);
+      return (
+        <AuthenticationContext.Provider value={props}>
+          {React.createElement(this.props.children, props)}
+        </AuthenticationContext.Provider>
+      );
     } else {
-      return React.cloneElement(this.props.children, props);
+      return (
+        <AuthenticationContext.Provider value={props}>
+          {React.cloneElement(this.props.children, props)}
+        </AuthenticationContext.Provider>
+      );
     }
   }
 }
