@@ -48,7 +48,9 @@ export class Authentication extends React.Component<Props, State> {
       // Used to denote before/after we've attempted an initial login
       loaded: false,
       // Whether or not a user is logged in
-      user: false,
+      authenticated: false,
+      // User object, if they are logged in
+      user: null,
       // Internal route path, defaults to the login screen
       internalRoute: ROUTE_LOGIN
     };
@@ -195,7 +197,8 @@ export class Authentication extends React.Component<Props, State> {
 
       this.setState({
         loaded: true,
-        user: isLoggedIn ? session.userCtx : false
+        authenticated: isLoggedIn,
+        user: session.userCtx
       });
 
       // If we are logged in and have not yet setup our remote db connection, set it up
@@ -204,7 +207,7 @@ export class Authentication extends React.Component<Props, State> {
       }
     } catch (err) {
       this.error(err);
-      this.setState({ loaded: true, user: false });
+      this.setState({ loaded: true, user: null, authenticated: false });
     }
   }
 
@@ -215,7 +218,11 @@ export class Authentication extends React.Component<Props, State> {
       });
 
       // Clear the user and redirect them to our login screen
-      this.setState({ user: false, internalRoute: ROUTE_LOGIN });
+      this.setState({
+        user: null,
+        authenticated: false,
+        internalRoute: ROUTE_LOGIN
+      });
     } catch (err) {
       this.error(err);
     }
@@ -236,11 +243,11 @@ export class Authentication extends React.Component<Props, State> {
         }
       );
 
-      this.setState({ user });
+      this.setState({ authenticated: true, user });
 
       this.setupDb();
     } catch (err) {
-      this.setState({ user: false });
+      this.setState({ authenticated: false, user: null });
       this.error(err);
     }
   };
@@ -291,7 +298,7 @@ export class Authentication extends React.Component<Props, State> {
     }
 
     // We have loaded our remote database but we are not authenticated
-    if (!this.state.user.name) {
+    if (!this.state.authenticated) {
       if (this.state.internalRoute === ROUTE_SIGNUP) {
         const props = {
           // Switches to the login screen and clears out any errors

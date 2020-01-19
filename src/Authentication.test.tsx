@@ -227,7 +227,8 @@ describe("<Authentication />", () => {
     component.find("#logout").simulate("click");
 
     await waitForExpect(() => {
-      expect(component.state().user).toBe(false);
+      expect(component.state().user).toBe(null);
+      expect(component.state().authenticated).toBe(false);
     });
 
     component.update();
