@@ -1,8 +1,6 @@
 # React CouchDB Authentication Component
 
-[![Build Status](https://travis-ci.org/stanlemon/react-couchdb-authentication.svg?branch=master)](https://travis-ci.org/stanlemon/react-couchdb-authentication)
-
-[![npm version](https://badge.fury.io/js/%40stanlemon%2Freact-couchdb-authentication.svg)](https://badge.fury.io/js/%40stanlemon%2Freact-couchdb-authentication)
+[![Build Status](https://travis-ci.org/stanlemon/react-couchdb-authentication.svg?branch=master)](https://travis-ci.org/stanlemon/react-couchdb-authentication)  [![npm version](https://badge.fury.io/js/%40stanlemon%2Freact-couchdb-authentication.svg)](https://badge.fury.io/js/%40stanlemon%2Freact-couchdb-authentication)
 
 React component for streamlining user authentication against an [Apache CouchDB](http://couchdb.apache.org) instance.
 If you're building a React application and want to let the _amazing_ CouchDB be your backend, you can
@@ -11,6 +9,12 @@ and login users to a secure application.  Each user's database is replicated loc
 [PouchDB](https://pouchdb.com) instance that you can use to wrok with documents.
 
 ## Getting Started
+
+First add the component to your application. _You should also have React and PouchDB installed._
+
+```
+npm install --save @stanlemon/react-couchdb-authentication pouchdb react
+```
 
 You will need an instance of CouchDB. If you don't have one, [the CouchDB install docs will take care of you](https://docs.couchdb.org/en/stable/install/index.html).
 In your CouchDB config you will need to enable `couch_user.enable` and `couch_user.delete_dbs`. You can do this through Fauxton, CouchDB's excellent UI or with the following commands:
