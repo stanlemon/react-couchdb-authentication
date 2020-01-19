@@ -11,6 +11,11 @@ interface Props {
 }
 
 export function Login(props: Props): JSX.Element {
+  const clickToSignUp = (e: React.MouseEvent): void => {
+    e.preventDefault();
+    props.navigateToSignUp();
+  };
+
   const hitEnter = (e: React.KeyboardEvent<HTMLInputElement>): void => {
     // Submit the form if they hit enter
     if (e.key.toLowerCase() === "enter") {
@@ -46,7 +51,7 @@ export function Login(props: Props): JSX.Element {
         Login
       </button>
       <p>
-        <a id="navigate-to-sign-up" onClick={props.navigateToSignUp}>
+        <a href="#" id="navigate-to-sign-up" onClick={clickToSignUp}>
           Or sign up for a new account.
         </a>
       </p>

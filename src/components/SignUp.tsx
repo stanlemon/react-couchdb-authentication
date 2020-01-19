@@ -13,6 +13,11 @@ interface Props {
 }
 
 export function SignUp(props: Props): JSX.Element {
+  const clickToLogin = (e: React.MouseEvent): void => {
+    e.preventDefault();
+    props.navigateToLogin();
+  };
+
   return (
     <div>
       {props.error && <div className="error">{props.error}</div>}
@@ -47,7 +52,7 @@ export function SignUp(props: Props): JSX.Element {
         Sign Up
       </button>
       <p>
-        <a id="navigate-to-login" onClick={props.navigateToLogin}>
+        <a href="#" id="navigate-to-login" onClick={clickToLogin}>
           Return to login.
         </a>
       </p>
