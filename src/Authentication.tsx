@@ -399,7 +399,6 @@ export class Authentication extends React.Component<Props, State> {
 
     const props = {
       db: this.localDb,
-      //remoteDb: this.remoteDb,
       logout: this.logout,
       user: this.state.user
     };
