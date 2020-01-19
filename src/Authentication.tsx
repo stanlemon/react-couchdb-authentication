@@ -7,37 +7,91 @@ const ROUTE_LOGIN = "login";
 const ROUTE_SIGNUP = "signup";
 
 interface Props {
+  /**
+   * An application that requires authentication.
+   */
   children?: React.ReactElement<{}>;
-  localAdapter: string;
+  /**
+   * Adapter for use by the local PouchDB instance, defaults to "idb".
+   */
+  adapter: string;
+  /**
+   * URL of the remote CouchDB instance to use for authentication.
+   */
   url: string;
+  /**
+   * In debug mode info logs go to the console.
+   */
   debug: boolean;
+  /**
+   * Whether or not to sync the user's database locally, defaults to true.
+   */
   sync: boolean;
-  login: React.ReactElement<{}>;
-  signup: React.ReactElement<{}>;
+  /**
+   * A component to be used for the login screen.
+   */
+  login: React.ReactElement<{
+    error: string;
+    login(username: string, password: string): void;
+    navigateToSignUp(): void;
+  }>;
+  /**
+   * A component to be used for the signup screen.
+   */
+  signup: React.ReactElement<{
+    error: string;
+    signUp(username: string, password: string, email: string): void;
+    navigateToLogin(): void;
+  }>;
+  /**
+   * A component to be used when loading, defaults to a fragment with the text "Loading...".
+   */
   loading?: React.ReactElement<{}>;
 }
 
 interface State {
+  /**
+   * Whether or not the first call to check for a session to the remote CouchDB instance has been made.
+   */
   loaded: boolean;
+  /**
+   * Used to track whether the user is viewing the login or sign up screen.
+   */
   internalRoute: string;
+  /**
+   * An error message if something has gone wrong.
+   */
   error: string;
+  /**
+   * Whether or not the user is currently authenticated to the remote CouchDB instance.
+   */
   authenticated: boolean;
+  /**
+   * Current authenticated user.
+   */
   user: {
+    /**
+     * Current authenticated user's name (used as part of it's document).
+     */
     name: string;
   };
 }
 
+/**
+ * Wrap components behind CouchDB authentication and sync the user's database locally.
+ */
 export class Authentication extends React.Component<Props, State> {
   static defaultProps = {
+    loading: <>Loading...</>,
     debug: false,
     sync: true,
-    localAdapter: "idb"
+    adapter: "idb"
   };
 
-  localDb: PouchDB.Database;
-  remoteDb: PouchDB.Database;
-  syncHandler: PouchDB.Replication.Sync<{}>;
-  checkSessionInterval: number;
+  private localDb: PouchDB.Database;
+  private remoteDb: PouchDB.Database;
+  private syncHandler: PouchDB.Replication.Sync<{}>;
+  private checkSessionInterval: number;
 
   constructor(props: Props) {
     super(props);
@@ -57,7 +111,7 @@ export class Authentication extends React.Component<Props, State> {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  log(...args: any): void {
+  private log(...args: any): void {
     if (this.props.debug) {
       // eslint-disable-next-line no-console
       console.log.apply(null, args);
@@ -65,27 +119,27 @@ export class Authentication extends React.Component<Props, State> {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  error(...args: any): void {
+  private error(...args: any): void {
     if (this.props.debug) {
       // eslint-disable-next-line no-console
       console.error.apply(null, args);
     }
   }
 
-  getUserDb(username: string): string {
+  private getUserDb(username: string): string {
     const buffer = Buffer.from(username);
     const hexUsername = buffer.toString("hex");
     return "userdb-" + hexUsername;
   }
 
-  getUserDbUrl(username: string): string {
+  private getUserDbUrl(username: string): string {
     return (
       this.props.url.substring(0, this.props.url.lastIndexOf("/") + 1) +
       this.getUserDb(username)
     );
   }
 
-  signUp = async (
+  private signUp = async (
     username: string,
     password: string,
     email: string
@@ -137,7 +191,7 @@ export class Authentication extends React.Component<Props, State> {
     }
   };
 
-  async checkForDb(username: string): Promise<void> {
+  private async checkForDb(username: string): Promise<void> {
     await retry(
       async () => {
         const info = await this.fetch<{ error: string; reason: string }>(
@@ -161,7 +215,7 @@ export class Authentication extends React.Component<Props, State> {
     );
   }
 
-  fetch<T>(url: string, options: {} = {}): Promise<T> {
+  private fetch<T>(url: string, options: {} = {}): Promise<T> {
     return fetch(url, {
       ...options,
       ...{
@@ -174,19 +228,7 @@ export class Authentication extends React.Component<Props, State> {
     }).then(r => r.json());
   }
 
-  componentDidMount(): void {
-    if (!this.props.url) {
-      throw new Error("A url to a couchdb instance is required");
-    }
-
-    this.checkSession();
-
-    this.checkSessionInterval = window.setInterval(() => {
-      this.checkSession();
-    }, 15000);
-  }
-
-  async checkSession(): Promise<void> {
+  private async checkSession(): Promise<void> {
     try {
       const session = await this.fetch<{ userCtx: { name: string } }>(
         this.props.url + "_session"
@@ -211,7 +253,7 @@ export class Authentication extends React.Component<Props, State> {
     }
   }
 
-  logout = async (): Promise<void> => {
+  private logout = async (): Promise<void> => {
     try {
       await this.fetch(this.props.url + "_session", {
         method: "DELETE"
@@ -228,7 +270,7 @@ export class Authentication extends React.Component<Props, State> {
     }
   };
 
-  login = async (username: string, password: string): Promise<void> => {
+  private login = async (username: string, password: string): Promise<void> => {
     if (!username || !password) {
       this.setState({ error: "Invalid login" });
       return;
@@ -252,9 +294,9 @@ export class Authentication extends React.Component<Props, State> {
     }
   };
 
-  async setupDb(): Promise<void> {
+  private async setupDb(): Promise<void> {
     this.localDb = new PouchDB("user", {
-      adapter: this.props.localAdapter
+      adapter: this.props.adapter
     });
 
     const opts = {
@@ -270,6 +312,11 @@ export class Authentication extends React.Component<Props, State> {
 
     this.remoteDb = new PouchDB(userDbUrl, opts);
 
+    if (!this.props.sync) {
+      this.log("Sync is disabled");
+      return;
+    }
+
     this.syncHandler = PouchDB.sync(this.localDb, this.remoteDb, {
       live: true,
       retry: true
@@ -282,10 +329,25 @@ export class Authentication extends React.Component<Props, State> {
       .on("error", err => this.error("Error", err));
   }
 
+  componentDidMount(): void {
+    if (!this.props.url) {
+      throw new Error("A url to a couchdb instance is required");
+    }
+
+    this.checkSession();
+
+    this.checkSessionInterval = window.setInterval(() => {
+      this.checkSession();
+    }, 15000);
+  }
+
   async componentWillUnmount(): Promise<void> {
     clearInterval(this.checkSessionInterval);
 
-    await this.syncHandler.cancel();
+    // Will not be set if sync has been disabled
+    if (this.syncHandler) {
+      await this.syncHandler.cancel();
+    }
 
     await this.remoteDb.close();
   }

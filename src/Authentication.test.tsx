@@ -26,7 +26,7 @@ describe("<Authentication />", () => {
     const t = (): void => {
       shallow(
         <Authentication
-          localAdapter="memory"
+          adapter="memory"
           // An empty URL should yield an error
           url=""
           loading={<LoadingComponent />}
@@ -42,7 +42,7 @@ describe("<Authentication />", () => {
   it("Component has <Loading /> when initialized", async () => {
     const component = shallow(
       <Authentication
-        localAdapter="memory"
+        adapter="memory"
         url={coudbUrl}
         loading={<LoadingComponent />}
         login={<LoginComponent />}
@@ -57,7 +57,7 @@ describe("<Authentication />", () => {
   it("Component renders <Login /> after loading", async () => {
     const component = shallow(
       <Authentication
-        localAdapter="memory"
+        adapter="memory"
         url={coudbUrl}
         loading={<LoadingComponent />}
         login={<LoginComponent />}
@@ -77,7 +77,7 @@ describe("<Authentication />", () => {
   it("Component renders <Signup /> when navigated to", async () => {
     const component = shallow(
       <Authentication
-        localAdapter="memory"
+        adapter="memory"
         url={coudbUrl}
         loading={<LoadingComponent />}
         login={<LoginComponent />}
@@ -103,7 +103,7 @@ describe("<Authentication />", () => {
   it("Can submit <Signup />, but errors out with empty data", async () => {
     const component = mount(
       <Authentication
-        localAdapter="memory"
+        adapter="memory"
         url={coudbUrl}
         loading={<LoadingComponent />}
         login={<LoginComponent />}
@@ -165,7 +165,7 @@ describe("<Authentication />", () => {
     const component = mount(
       <Authentication
         debug={true}
-        localAdapter="memory"
+        adapter="memory"
         url={coudbUrl}
         loading={<LoadingComponent />}
         login={<LoginComponent />}
