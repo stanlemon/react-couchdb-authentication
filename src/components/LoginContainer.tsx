@@ -31,14 +31,13 @@ export class LoginContainer extends React.Component<Props> {
     }
   }
 
-  setUsername = (event: React.FormEvent<HTMLInputElement>): void =>
-    this.setState({ username: event.currentTarget.value });
+  setUsername = (event: React.ChangeEvent<HTMLInputElement>): void =>
+    this.setState({ username: event.target.value });
 
-  setPassword = (event: React.FormEvent<HTMLInputElement>): void =>
-    this.setState({ password: event.currentTarget.value });
+  setPassword = (event: React.ChangeEvent<HTMLInputElement>): void =>
+    this.setState({ password: event.target.value });
 
   login = (): void => {
-    console.log("Clicked login");
     this.props.login(this.state.username, this.state.password);
   };
 }

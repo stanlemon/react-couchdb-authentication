@@ -11,33 +11,45 @@ interface Props {
 }
 
 export function Login(props: Props): JSX.Element {
+  const hitEnter = (e: React.KeyboardEvent<HTMLInputElement>): void => {
+    // Submit the form if they hit enter
+    if (e.key.toLowerCase() === "enter") {
+      props.login();
+    }
+  };
+
   return (
     <div>
-      {props.error && <div id="error">{props.error}</div>}
-      <input
-        id="username"
-        type="text"
-        value={props.username}
-        onChange={props.setUsername}
-      />
-      <input
-        id="password"
-        type="password"
-        value={props.password}
-        onChange={props.setPassword}
-        onKeyPress={(e): void => {
-          // Submit the form if they hit enter
-          if (e.key === "enter") {
-            props.login();
-          }
-        }}
-      />
+      {props.error && <p className="error">{props.error}</p>}
+      <p>
+        <label htmlFor="username">Username</label>
+        <input
+          id="username"
+          type="text"
+          value={props.username}
+          onChange={props.setUsername}
+          onKeyPress={hitEnter}
+        />
+      </p>
+      <p>
+        <label htmlFor="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          value={props.password}
+          onChange={props.setPassword}
+          onKeyPress={hitEnter}
+        />
+      </p>
+
       <button id="login-button" onClick={props.login}>
         Login
       </button>
-      <button id="navigate-to-sign-up" onClick={props.navigateToSignUp}>
-        Click here to sign up!
-      </button>
+      <p>
+        <a id="navigate-to-sign-up" onClick={props.navigateToSignUp}>
+          Or sign up for a new account.
+        </a>
+      </p>
     </div>
   );
 }

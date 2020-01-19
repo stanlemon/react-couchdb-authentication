@@ -15,34 +15,42 @@ interface Props {
 export function SignUp(props: Props): JSX.Element {
   return (
     <div>
-      {props.error && <div id="error">{props.error}</div>}
-      <label>Username</label>
-      <input
-        id="username"
-        type="text"
-        value={props.username}
-        onChange={props.setUsername}
-      />
-      <label>Email</label>
-      <input
-        id="email"
-        type="text"
-        value={props.email}
-        onChange={props.setEmail}
-      />
-      <label>Password</label>
-      <input
-        id="password"
-        type="password"
-        value={props.password}
-        onChange={props.setPassword}
-      />
+      {props.error && <div className="error">{props.error}</div>}
+      <p>
+        <label htmlFor="username">Username</label>
+        <input
+          id="username"
+          type="text"
+          value={props.username}
+          onChange={props.setUsername}
+        />
+      </p>
+      <p>
+        <label htmlFor="email">Email</label>
+        <input
+          id="email"
+          type="text"
+          value={props.email}
+          onChange={props.setEmail}
+        />
+      </p>
+      <p>
+        <label htmlFor="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          value={props.password}
+          onChange={props.setPassword}
+        />
+      </p>
       <button id="sign-up-button" onClick={props.signUp}>
         Sign Up
       </button>
-      <button id="navigate-to-login" onClick={props.navigateToLogin}>
-        Return to login
-      </button>
+      <p>
+        <a id="navigate-to-login" onClick={props.navigateToLogin}>
+          Return to login.
+        </a>
+      </p>
     </div>
   );
 }

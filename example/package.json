@@ -1,0 +1,28 @@
+{
+  "name": "@stanlemon/react-couchdb-authentication-example",
+  "version": "0.1.0",
+  "private": true,
+  "description": "An example using React CouchDB Authentication components.",
+  "author": "Stan Lemon <stanlemon@users.noreply.github.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:stanlemon/react-couchdb-authentication"
+  },
+  "scripts": {
+    "start": "parcel --out-dir ./out/ index.html"
+  },
+  "browserlist": [
+    "last 2 Chrome versions"
+  ],
+  "dependencies": {
+    "pouchdb": "^7.1.1",
+    "react": "^16.12.0",
+    "react-dom": "^16.12.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.8.3",
+    "@babel/plugin-transform-runtime": "^7.8.3",
+    "parcel-bundler": "^1.12.4"
+  }
+}

@@ -1,18 +1,11 @@
 /* eslint-disable max-lines-per-function */
 import React from "react";
 import { shallow, mount } from "enzyme";
-import express from "express";
 import PouchDB from "pouchdb";
-import nano from "nano";
-import ExpressPouchDB from "express-pouchdb";
 import waitForExpect from "wait-for-expect";
-import _ from "lodash";
 import { Authentication } from "./Authentication";
 import { LoginContainer, Login, SignUpContainer, SignUp } from "./components";
-
-const TestPouchDB = PouchDB.defaults({
-  adapter: "memory"
-});
+import fetch from "isomorphic-fetch";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 PouchDB.plugin(require("pouchdb-adapter-memory"));
@@ -27,36 +20,12 @@ const SignUpComponent = (props): React.ReactElement<{}> => (
 const LoadingComponent = (): React.ReactElement<{}> => <div>Loading...</div>;
 
 describe("<Authentication />", () => {
-  const app = express();
-  let server;
-
-  beforeAll(done => {
-    app.use(
-      "/db",
-      ExpressPouchDB(TestPouchDB, {
-        logPath: "/tmp/pouchdb.log"
-      })
-    );
-
-    server = app.listen(3131, () => {
-      // Create the main database that we'll use for our connection
-      new TestPouchDB("main");
-
-      done();
-    });
-  });
-
-  afterAll(done => {
-    server.close(() => {
-      setTimeout(() => done(), 10000);
-    });
-  });
+  const coudbUrl = process.env.COUCHDB_URL || "http://127.0.0.1:5984/";
 
   it("Throws an error when a database is not specified", () => {
     const t = (): void => {
       shallow(
         <Authentication
-          localDatabase="test"
           localAdapter="memory"
           // An empty URL should yield an error
           url=""
@@ -73,9 +42,8 @@ describe("<Authentication />", () => {
   it("Component has <Loading /> when initialized", async () => {
     const component = shallow(
       <Authentication
-        localDatabase="test"
         localAdapter="memory"
-        url="http://localhost:3131/db/main"
+        url={coudbUrl}
         loading={<LoadingComponent />}
         login={<LoginComponent />}
         signup={<SignUpComponent />}
@@ -89,9 +57,8 @@ describe("<Authentication />", () => {
   it("Component renders <Login /> after loading", async () => {
     const component = shallow(
       <Authentication
-        localDatabase="test"
         localAdapter="memory"
-        url="http://localhost:3131/db/main"
+        url={coudbUrl}
         loading={<LoadingComponent />}
         login={<LoginComponent />}
         signup={<SignUpComponent />}
@@ -110,9 +77,8 @@ describe("<Authentication />", () => {
   it("Component renders <Signup /> when navigated to", async () => {
     const component = shallow(
       <Authentication
-        localDatabase="test"
         localAdapter="memory"
-        url="http://localhost:3131/db/main"
+        url={coudbUrl}
         loading={<LoadingComponent />}
         login={<LoginComponent />}
         signup={<SignUpComponent />}
@@ -135,13 +101,10 @@ describe("<Authentication />", () => {
   });
 
   it("Can submit <Signup />, but errors out with empty data", async () => {
-    const url = "http://localhost:3131/db/main";
-
     const component = mount(
       <Authentication
-        localDatabase="test"
         localAdapter="memory"
-        url={url}
+        url={coudbUrl}
         loading={<LoadingComponent />}
         login={<LoginComponent />}
         signup={<SignUpComponent />}
@@ -171,31 +134,48 @@ describe("<Authentication />", () => {
 
     expect(
       component
-        .find("#error")
+        .find(".error")
         .text()
         .trim()
-    ).toBe("You must provide a username");
+    ).toBe("Username, password and email are required fields.");
   });
 
-  it("Can submit <Signup /> and creates user doc", async () => {
-    const url = "http://localhost:3131/db/main";
-
-    const username = "test";
+  // This is a full end to end test
+  it("Can submit <Signup />, create user doc, logout and then <Login />", async () => {
+    const username = "test" + Date.now();
     const password = "password";
     const email = "email@example.com";
 
+    const App = ({
+      user,
+      logout
+    }: {
+      user?: {};
+      logout?: () => {};
+    }): React.ReactElement => (
+      <>
+        <h1>Authenticated</h1>
+        <h2>Hello {user.name}</h2>
+        <a id="logout" href="#" onClick={logout}>
+          Click to logout
+        </a>
+      </>
+    );
+
     const component = mount(
       <Authentication
-        maxUserDbRetries={2}
-        userDbRetryInterval={100}
-        localDatabase="test"
+        debug={true}
         localAdapter="memory"
-        url={url}
+        url={coudbUrl}
         loading={<LoadingComponent />}
         login={<LoginComponent />}
         signup={<SignUpComponent />}
-      />
+      >
+        <App />
+      </Authentication>
     );
+
+    expect(component.state().internalRoute).toBe("login");
 
     // Now check for the loaded state to change
     await waitForExpect(() => {
@@ -207,6 +187,10 @@ describe("<Authentication />", () => {
     // Login component should have gotten a navigation method from the <Authentication /> component,
     // and calling it should advance to the signup screen
     component.find("#navigate-to-sign-up").simulate("click");
+
+    await waitForExpect(() => {
+      expect(component.state().internalRoute).toBe("signup");
+    });
 
     component.update();
 
@@ -233,100 +217,62 @@ describe("<Authentication />", () => {
 
     component.find("#sign-up-button").simulate("click");
 
-    // Now check for the loaded state to change
-    // TODO: There needs to be a better way to do this
     await waitForExpect(() => {
-      expect(component.state().internalRoute).toBe("login");
-      expect(component.state().error).not.toBe(null);
+      component.update();
+
+      expect(component.find("h1").text()).toBe("Authenticated");
+      expect(component.find("h2").text()).toBe("Hello " + username);
     });
 
-    // This should render the Login screen because the database doesn't exist yet
+    component.find("#logout").simulate("click");
+
+    await waitForExpect(() => {
+      expect(component.state().user).toBe(false);
+    });
+
     component.update();
 
-    expect(component.containsMatchingElement(<LoginComponent />)).toBe(true);
-
-    const userDb = nano("http://127.0.0.1:3131/db/_users");
-
-    const userDocs = await userDb.list({
-      include_docs: true
-    });
-    // Get just the non-internal user docs
-    const users = userDocs.rows
-      .filter(d => d.id.substr(0, 1) !== "_")
-      .map(d => d.doc);
-
-    // Our user doc exists in the database!
-    expect(_.find(users, _.matchesProperty("name", username))).not.toBe(null);
-  });
-
-  it("Can submit <Login />, but errors out with an invalid login", async () => {
-    const component = mount(
-      <Authentication
-        localDatabase="test"
-        localAdapter="memory"
-        url="http://localhost:3131/db/main"
-        loading={<LoadingComponent />}
-        login={<LoginComponent />}
-        signup={<SignUpComponent />}
-      />
-    );
-
-    // Now check for the loaded state to change
-    await waitForExpect(() => {
-      expect(component.state().loaded).toBe(true);
-    });
-
-    // Login screen should appear now
-    component.update();
-
-    // Fill in a non-existent username
+    // Fill in username
     component.find("#username").simulate("change", {
       target: {
-        value: "foobar"
+        value: username
       }
     });
 
+    // Fill in password
     component.find("#password").simulate("change", {
       target: {
-        value: "password"
+        value: password
       }
     });
 
-    // Click the login button
     component.find("#login-button").simulate("click");
 
-    // PouchDB will talk to the server, but not be able to read the database
-    // and thus return an error
+    // User was able to login
     await waitForExpect(() => {
-      expect(component.state().error).not.toBe(null);
+      expect(component.state().user.name).toBe(username);
     });
 
-    // Update the component, we should have an error at this point
-    component.update();
+    await component.unmount();
 
-    expect(
-      component
-        .find("#error")
-        .text()
-        .trim()
-    ).toBe("Invalid login");
+    // Now we need to cleanup the user that we created
+    const userUrl =
+      coudbUrl.substring(0, 7) +
+      username +
+      ":" +
+      password +
+      "@" +
+      coudbUrl.substring(7) +
+      "_users/org.couchdb.user:" +
+      username;
 
-    // Navigate to the sign up screen, this should clear out the error
-    component.find("#navigate-to-sign-up").simulate("click");
+    const user = await fetch(userUrl).then(r => r.json());
 
-    // Update the component
-    component.update();
+    const done = await fetch(userUrl + "?rev=" + user._rev, {
+      method: "DELETE"
+    }).then(r => r.json());
 
-    // Switching to the login screen there should be no errors
-    expect(component.find("#error").length).toBe(0);
-
-    // Switch back to the login screen
-    component.find("#navigate-to-login").simulate("click");
-
-    // Update the component
-    component.update();
-
-    // There shouldn't be any errors on the login screen after navigating away and coming back
-    expect(component.find("#error").length).toBe(0);
+    // We successfully delete the user that we created
+    expect(done.ok).toBe(true);
   });
 });

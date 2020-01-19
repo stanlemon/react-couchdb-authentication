@@ -34,14 +34,15 @@ export class SignUpContainer extends React.Component<Props> {
     }
   }
 
-  setUsername = (event: React.FormEvent<HTMLInputElement>): void =>
-    this.setState({ username: event.currentTarget.value });
+  setUsername = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    this.setState({ username: event.target.value });
+  };
 
-  setEmail = (event: React.FormEvent<HTMLInputElement>): void =>
-    this.setState({ email: event.currentTarget.value });
+  setEmail = (event: React.ChangeEvent<HTMLInputElement>): void =>
+    this.setState({ email: event.target.value });
 
-  setPassword = (event: React.FormEvent<HTMLInputElement>): void =>
-    this.setState({ password: event.currentTarget.value });
+  setPassword = (event: React.ChangeEvent<HTMLInputElement>): void =>
+    this.setState({ password: event.target.value });
 
   signUp = (): void => {
     this.props.signUp(
