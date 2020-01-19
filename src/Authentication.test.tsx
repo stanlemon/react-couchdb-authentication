@@ -4,20 +4,11 @@ import { shallow, mount } from "enzyme";
 import PouchDB from "pouchdb";
 import waitForExpect from "wait-for-expect";
 import { Authentication } from "./Authentication";
-import { LoginContainer, Login, SignUpContainer, SignUp } from "./components";
+import { Login, SignUp } from "./components";
 import fetch from "isomorphic-fetch";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 PouchDB.plugin(require("pouchdb-adapter-memory"));
-
-// Visual components for use in tests
-const LoginComponent = (props): React.ReactElement<{}> => (
-  <LoginContainer {...props} component={Login} />
-);
-const SignUpComponent = (props): React.ReactElement<{}> => (
-  <SignUpContainer {...props} component={SignUp} />
-);
-const LoadingComponent = (): React.ReactElement<{}> => <div>Loading...</div>;
 
 describe("<Authentication />", () => {
   const coudbUrl = process.env.COUCHDB_URL || "http://127.0.0.1:5984/";
@@ -29,9 +20,8 @@ describe("<Authentication />", () => {
           adapter="memory"
           // An empty URL should yield an error
           url=""
-          loading={<LoadingComponent />}
-          login={<LoginComponent />}
-          signup={<SignUpComponent />}
+          login={<Login />}
+          signup={<SignUp />}
         />
       );
     };
@@ -44,14 +34,13 @@ describe("<Authentication />", () => {
       <Authentication
         adapter="memory"
         url={coudbUrl}
-        loading={<LoadingComponent />}
-        login={<LoginComponent />}
-        signup={<SignUpComponent />}
+        login={<Login />}
+        signup={<SignUp />}
       />
     );
 
     // Initially the component shows a loading, it has to make a credentials call next
-    expect(component.containsMatchingElement(<LoadingComponent />)).toBe(true);
+    expect(component.text()).toBe("Loading...");
   });
 
   it("Component renders <Login /> after loading", async () => {
@@ -59,9 +48,8 @@ describe("<Authentication />", () => {
       <Authentication
         adapter="memory"
         url={coudbUrl}
-        loading={<LoadingComponent />}
-        login={<LoginComponent />}
-        signup={<SignUpComponent />}
+        login={<Login />}
+        signup={<SignUp />}
       />
     );
 
@@ -71,7 +59,7 @@ describe("<Authentication />", () => {
       expect(component.state().loaded).toBe(true);
     });
 
-    expect(component.containsMatchingElement(<LoginComponent />)).toBe(true);
+    expect(component.containsMatchingElement(<Login />)).toBe(true);
   });
 
   it("Component renders <Signup /> when navigated to", async () => {
@@ -79,9 +67,8 @@ describe("<Authentication />", () => {
       <Authentication
         adapter="memory"
         url={coudbUrl}
-        loading={<LoadingComponent />}
-        login={<LoginComponent />}
-        signup={<SignUpComponent />}
+        login={<Login />}
+        signup={<SignUp />}
       />
     );
 
@@ -93,11 +80,11 @@ describe("<Authentication />", () => {
     // Login component should have gotten a navigation method from the <Authentication /> component,
     // and calling it should advance to the signup screen
     component
-      .find(LoginComponent)
+      .find(Login)
       .props()
       .navigateToSignUp();
 
-    expect(component.containsMatchingElement(<SignUpComponent />)).toBe(true);
+    expect(component.containsMatchingElement(<SignUp />)).toBe(true);
   });
 
   it("Can submit <Signup />, but errors out with empty data", async () => {
@@ -105,9 +92,8 @@ describe("<Authentication />", () => {
       <Authentication
         adapter="memory"
         url={coudbUrl}
-        loading={<LoadingComponent />}
-        login={<LoginComponent />}
-        signup={<SignUpComponent />}
+        login={<Login />}
+        signup={<SignUp />}
       />
     );
 
@@ -167,9 +153,8 @@ describe("<Authentication />", () => {
         debug={true}
         adapter="memory"
         url={coudbUrl}
-        loading={<LoadingComponent />}
-        login={<LoginComponent />}
-        signup={<SignUpComponent />}
+        login={<Login />}
+        signup={<SignUp />}
       >
         <App />
       </Authentication>

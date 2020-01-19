@@ -88,27 +88,23 @@ export class Authentication extends React.Component<Props, State> {
     adapter: "idb"
   };
 
+  state = {
+    // If errors bubble up and need to be provided to the login screen
+    error: null,
+    // Used to denote before/after we've attempted an initial login
+    loaded: false,
+    // Whether or not a user is logged in
+    authenticated: false,
+    // User object, if they are logged in
+    user: null,
+    // Internal route path, defaults to the login screen
+    internalRoute: ROUTE_LOGIN
+  };
+
   private localDb: PouchDB.Database;
   private remoteDb: PouchDB.Database;
   private syncHandler: PouchDB.Replication.Sync<{}>;
   private checkSessionInterval: number;
-
-  constructor(props: Props) {
-    super(props);
-
-    this.state = {
-      // If errors bubble up and need to be provided to the login screen
-      error: null,
-      // Used to denote before/after we've attempted an initial login
-      loaded: false,
-      // Whether or not a user is logged in
-      authenticated: false,
-      // User object, if they are logged in
-      user: null,
-      // Internal route path, defaults to the login screen
-      internalRoute: ROUTE_LOGIN
-    };
-  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private log(...args: any): void {

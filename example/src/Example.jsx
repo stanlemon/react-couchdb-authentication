@@ -1,18 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { Authentication } from "../../src";
-import {
-  LoginContainer,
-  SignUpContainer,
-  Login,
-  SignUp
-} from "../../src/components";
+import { Login, SignUp } from "../../src/components";
 
 // Visual components for use in tests
-const LoginComponent = props => <LoginContainer {...props} component={Login} />;
-const SignUpComponent = props => (
-  <SignUpContainer {...props} component={SignUp} />
-);
 const App = ({ logout, user }) => (
   <>
     <h1>Hello!</h1>
@@ -41,8 +32,8 @@ class Example extends React.Component {
         <Authentication
           debug={true}
           url="http://localhost:5984/"
-          login={<LoginComponent />}
-          signup={<SignUpComponent />}
+          login={<Login />}
+          signup={<SignUp />}
           loading={<div>Loading...</div>}
         >
           <App />

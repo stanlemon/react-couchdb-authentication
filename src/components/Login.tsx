@@ -1,60 +1,48 @@
 import * as React from "react";
+import { LoginView } from "./LoginView";
 
 interface Props {
-  error: string;
-  username: string;
-  setUsername(event: React.FormEvent<HTMLInputElement>): void;
-  password: string;
-  setPassword(event: React.FormEvent<HTMLInputElement>): void;
-  login(): void;
-  navigateToSignUp(): void;
+  component?: React.ReactElement<{}>;
+  error?: string;
+  login?(username: string, password: string): void;
+  navigateToSignUp?(): void;
 }
 
-export function Login(props: Props): JSX.Element {
-  const clickToSignUp = (e: React.MouseEvent): void => {
-    e.preventDefault();
-    props.navigateToSignUp();
+export class Login extends React.Component<Props> {
+  static defaultProps = {
+    component: LoginView
   };
 
-  const hitEnter = (e: React.KeyboardEvent<HTMLInputElement>): void => {
-    // Submit the form if they hit enter
-    if (e.key.toLowerCase() === "enter") {
-      props.login();
+  state = {
+    username: "",
+    password: ""
+  };
+
+  setUsername = (event: React.ChangeEvent<HTMLInputElement>): void =>
+    this.setState({ username: event.target.value });
+
+  setPassword = (event: React.ChangeEvent<HTMLInputElement>): void =>
+    this.setState({ password: event.target.value });
+
+  login = (): void => {
+    this.props.login(this.state.username, this.state.password);
+  };
+
+  render(): React.ReactNode {
+    const props = {
+      error: this.props.error,
+      login: this.login,
+      navigateToSignUp: this.props.navigateToSignUp,
+      username: this.state.username,
+      setUsername: this.setUsername,
+      password: this.state.password,
+      setPassword: this.setPassword
+    };
+
+    if (!React.isValidElement(this.props.component)) {
+      return React.createElement(this.props.component, props);
+    } else {
+      return React.cloneElement(this.props.component, props);
     }
-  };
-
-  return (
-    <div>
-      {props.error && <p className="error">{props.error}</p>}
-      <p>
-        <label htmlFor="username">Username</label>
-        <input
-          id="username"
-          type="text"
-          value={props.username}
-          onChange={props.setUsername}
-          onKeyPress={hitEnter}
-        />
-      </p>
-      <p>
-        <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          type="password"
-          value={props.password}
-          onChange={props.setPassword}
-          onKeyPress={hitEnter}
-        />
-      </p>
-
-      <button id="login-button" onClick={props.login}>
-        Login
-      </button>
-      <p>
-        <a href="#" id="navigate-to-sign-up" onClick={clickToSignUp}>
-          Or sign up for a new account.
-        </a>
-      </p>
-    </div>
-  );
+  }
 }

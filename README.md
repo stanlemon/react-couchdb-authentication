@@ -36,6 +36,10 @@ The `<Authentication/>` component is easy to use, simply wrap your `<App />` and
 </Authentication>
 ```
 
+_Want an easier way to see this in action?_ Clone the repository, and checkout the example folder. You can run `npm start` inside of it and see a fully functioning implementation of the components.
+
+The `<Login />` and `<SignUp />` components are actually containers that provide some simple setters that are supplied to a view via the `component` property, which you can customize to look appropriate for your application.
+
 ## Troubleshooting
 
 Most issues are due to CouchDB being misconfigured, or cookies already being set.  If you've pulled up Fauxton in your browser you will want to clear the cookies for your CouchDB instance before using this component.
