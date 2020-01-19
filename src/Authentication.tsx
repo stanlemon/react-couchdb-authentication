@@ -77,6 +77,8 @@ interface State {
   };
 }
 
+export const AuthenticationContext = React.createContext({});
+
 /**
  * Wrap components behind CouchDB authentication and sync the user's database locally.
  */
@@ -402,11 +404,21 @@ export class Authentication extends React.Component<Props, State> {
       user: this.state.user
     };
 
+    // TODO: Remove the props overrides, the Context should be the only way to get these.
+
     // We are authenticated and synced so load our application
     if (!React.isValidElement(this.props.children)) {
-      return React.createElement(this.props.children, props);
+      return (
+        <AuthenticationContext.Provider value={props}>
+          {React.createElement(this.props.children, props)}
+        </AuthenticationContext.Provider>
+      );
     } else {
-      return React.cloneElement(this.props.children, props);
+      return (
+        <AuthenticationContext.Provider value={props}>
+          {React.cloneElement(this.props.children, props)}
+        </AuthenticationContext.Provider>
+      );
     }
   }
 }
