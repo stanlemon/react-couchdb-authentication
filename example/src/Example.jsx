@@ -4,7 +4,7 @@ import { Authentication } from "../../src";
 import { Login, SignUp } from "../../src/components";
 
 // Visual components for use in tests
-const App = ({ logout, user }) => (
+const App = ({ db, logout, user }) => (
   <>
     <h1>Hello!</h1>
     <h2>This is an authenticated page, belonging to user {user.name}.</h2>

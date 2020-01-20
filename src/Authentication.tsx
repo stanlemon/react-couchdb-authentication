@@ -292,7 +292,7 @@ export class Authentication extends React.Component<Props, State> {
     }
   };
 
-  private async setupDb(): Promise<void> {
+  private setupDb(): Promise<void> {
     this.localDb = new PouchDB("user", {
       adapter: this.props.adapter
     });
@@ -309,6 +309,9 @@ export class Authentication extends React.Component<Props, State> {
     const userDbUrl = this.getUserDbUrl(this.state.user.name);
 
     this.remoteDb = new PouchDB(userDbUrl, opts);
+
+    // This is because we're setting important properties that aren't in state
+    this.forceUpdate();
 
     if (!this.props.sync) {
       this.log("Sync is disabled");
@@ -395,6 +398,11 @@ export class Authentication extends React.Component<Props, State> {
       } else {
         return React.cloneElement(this.props.login, props);
       }
+    }
+
+    if (!this.localDb) {
+      this.log("Local database is not setup yet");
+      return this.props.loading;
     }
 
     const props = {
