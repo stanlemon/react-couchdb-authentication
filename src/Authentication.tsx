@@ -1,7 +1,7 @@
 import * as React from "react";
 import PouchDB from "pouchdb";
 import retry from "async-retry";
-import fetch from "isomorphic-fetch";
+import "isomorphic-fetch";
 
 const ROUTE_LOGIN = "login";
 const ROUTE_SIGNUP = "signup";
