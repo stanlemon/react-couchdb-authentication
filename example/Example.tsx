@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 import PropTypes from "prop-types";
 import { Authentication } from "../src";
-import { Login, SignUp } from "../src/components";
+import { Login, SignUp, LoginView, SignUpView } from "../src/components";
 
 // Our application when a user is logged in.
 function App({ logout, user }) {
@@ -42,8 +42,8 @@ class Example extends React.Component {
         <Authentication
           debug={true}
           url="http://localhost:5984/"
-          login={<Login />}
-          signup={<SignUp />}
+          login={<Login component={LoginView} />}
+          signup={<SignUp component={SignUpView} />}
           loading={<div>Loading...</div>}
         >
           <App />

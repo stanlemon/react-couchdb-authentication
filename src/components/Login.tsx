@@ -1,14 +1,14 @@
 import * as React from "react";
-import { LoginView } from "./LoginView";
+import { LoginView, LoginViewProps } from "./LoginView";
 
-interface Props {
-  component?: React.ReactElement;
+export interface LoginProps {
+  component?: React.ComponentType<LoginViewProps>;
   error?: string;
   login?(username: string, password: string): void;
   navigateToSignUp?(): void;
 }
 
-export class Login extends React.Component<Props> {
+export class Login extends React.Component<LoginProps> {
   static defaultProps = {
     component: LoginView,
   };
