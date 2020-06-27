@@ -1,18 +1,28 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import { Authentication } from "../../src";
-import { Login, SignUp } from "../../src/components";
+import PropTypes from "prop-types";
+import { Authentication } from "../src";
+import { Login, SignUp } from "../src/components";
 
-// Visual components for use in tests
-const App = ({ db, logout, user }) => (
-  <>
-    <h1>Hello!</h1>
-    <h2>This is an authenticated page, belonging to user {user.name}.</h2>
-    <p>
-      <a onClick={logout}>Click here to logout.</a>
-    </p>
-  </>
-);
+// Our application when a user is logged in.
+function App({ logout, user }) {
+  return (
+    <>
+      <h1>Hello!</h1>
+      <h2>This is an authenticated page, belonging to user {user.name}.</h2>
+      <p>
+        <a onClick={logout}>Click here to logout.</a>
+      </p>
+    </>
+  );
+}
+
+App.propTypes = {
+  logout: PropTypes.func,
+  user: PropTypes.shape({
+    name: PropTypes.string,
+  }),
+};
 
 class Example extends React.Component {
   render() {
@@ -20,13 +30,13 @@ class Example extends React.Component {
       <>
         <h1>CouchDB Application</h1>
         <div>
-          If you are currently logged into Fauxton, or you haven't disabled the{" "}
+          If you are currently logged into Fauxton, or you have not disabled the{" "}
           <em>
             <a href="https://guide.couchdb.org/draft/security.html">
               admin party
             </a>
           </em>{" "}
-          it's likely this application won't behave correctly.
+          it is likely this application will not behave correctly.
         </div>
         <br />
         <Authentication

@@ -1,6 +1,6 @@
 {
   "name": "@stanlemon/react-couchdb-authentication",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "React component for authenticating against a CouchDB user db and syncing it locally with PouchDB.",
   "keywords": [
     "react",
@@ -15,8 +15,8 @@
     "build": "tsc",
     "watch": "tsc -w",
     "test": "jest",
-    "lint": "eslint --ext js,jsx,ts,tsx ./src/",
-    "eslint-check": "eslint --print-config . | eslint-config-prettier-check"
+    "lint": "eslint --ext js,jsx,ts,tsx ./src/ ./example/",
+    "example": "parcel --out-dir ./example/out/ ./example/index.html"
   },
   "author": "Stan Lemon <stanlemon@users.noreply.github.com>",
   "repository": {
@@ -24,6 +24,17 @@
     "url": "git://github.com/stanlemon/js-libs.git"
   },
   "license": "MIT",
+  "browserslist": [
+    "last 1 year, not dead",
+    "edge > 18",
+    "not ie 11",
+    "not ie_mob 11",
+    "not samsung < 1000",
+    "not opera < 1000",
+    "not kaios < 1000",
+    "not android < 1000",
+    "not and_qq < 1000"
+  ],
   "jest": {
     "roots": [
       "./src/"
@@ -35,6 +46,10 @@
     "testEnvironmentOptions": {
       "enzymeAdapter": "react16"
     },
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/out/"
+    ],
     "transform": {
       "^.+\\.(js|jsx|ts|tsx)?$": "babel-jest"
     }
@@ -44,42 +59,44 @@
     "react": "^16.13.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.9.0",
-    "@babel/plugin-proposal-class-properties": "^7.8.3",
-    "@babel/plugin-transform-runtime": "^7.9.0",
-    "@babel/preset-env": "^7.9.0",
-    "@babel/preset-react": "^7.9.4",
-    "@babel/preset-typescript": "^7.9.0",
+    "@babel/core": "^7.10.3",
+    "@babel/plugin-proposal-class-properties": "^7.10.1",
+    "@babel/plugin-transform-runtime": "^7.10.3",
+    "@babel/preset-env": "^7.10.3",
+    "@babel/preset-react": "^7.10.1",
+    "@babel/preset-typescript": "^7.10.1",
     "@types/enzyme": "^3.10.5",
-    "@types/jest": "^25.1.4",
-    "@types/lodash": "^4.14.149",
+    "@types/jest": "^26.0.3",
+    "@types/lodash": "^4.14.157",
     "@types/pouchdb": "^6.4.0",
-    "@types/react": "^16.9.26",
-    "@typescript-eslint/eslint-plugin": "^2.25.0",
-    "@typescript-eslint/parser": "^2.25.0",
+    "@types/react": "^16.9.41",
+    "@types/webpack-env": "^1.15.2",
+    "@typescript-eslint/eslint-plugin": "^3.4.0",
+    "@typescript-eslint/parser": "^3.4.0",
     "babel-eslint": "^10.1.0",
-    "babel-jest": "^25.2.3",
+    "babel-jest": "^26.1.0",
     "enzyme": "^3.11.0",
     "enzyme-adapter-react-16": "^1.15.2",
-    "eslint": "^6.8.0",
-    "eslint-config-prettier": "^6.10.1",
-    "eslint-plugin-jest": "^23.8.2",
-    "eslint-plugin-prettier": "^3.1.2",
-    "eslint-plugin-react": "^7.19.0",
-    "jest": "^25.2.3",
+    "eslint": "^7.3.1",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-jest": "^23.17.1",
+    "eslint-plugin-prettier": "^3.1.4",
+    "eslint-plugin-react": "^7.20.0",
+    "jest": "^26.1.0",
     "jest-environment-enzyme": "^7.1.2",
     "jest-enzyme": "^7.1.2",
+    "parcel": "^1.12.4",
     "pouchdb": "^7.2.1",
     "pouchdb-adapter-memory": "^7.2.1",
-    "prettier": "^2.0.2",
+    "prettier": "^2.0.5",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-test-renderer": "^16.13.1",
-    "typescript": "^3.8.3",
+    "typescript": "^3.9.5",
     "wait-for-expect": "^3.0.2"
   },
   "dependencies": {
-    "@babel/runtime": "^7.9.2",
+    "@babel/runtime": "^7.10.3",
     "async-retry": "^1.3.1",
     "isomorphic-fetch": "^2.2.1"
   }

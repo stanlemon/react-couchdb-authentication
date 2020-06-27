@@ -2,7 +2,7 @@ import * as React from "react";
 import { SignUpView } from "./SignUpView";
 
 interface Props {
-  component?: React.ReactElement<{}>;
+  component?: React.ReactElement;
   error?: string;
   signUp?(username: string, password: string, email: string): void;
   navigateToLogin?(): void;
@@ -10,13 +10,13 @@ interface Props {
 
 export class SignUp extends React.Component<Props> {
   static defaultProps = {
-    component: SignUpView
+    component: SignUpView,
   };
 
   state = {
     username: "",
     email: "",
-    password: ""
+    password: "",
   };
 
   setUsername = (event: React.ChangeEvent<HTMLInputElement>): void => {
@@ -47,7 +47,7 @@ export class SignUp extends React.Component<Props> {
       username: this.state.username,
       setUsername: this.setUsername,
       password: this.state.password,
-      setPassword: this.setPassword
+      setPassword: this.setPassword,
     };
 
     if (!React.isValidElement(this.props.component)) {

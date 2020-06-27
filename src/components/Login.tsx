@@ -2,7 +2,7 @@ import * as React from "react";
 import { LoginView } from "./LoginView";
 
 interface Props {
-  component?: React.ReactElement<{}>;
+  component?: React.ReactElement;
   error?: string;
   login?(username: string, password: string): void;
   navigateToSignUp?(): void;
@@ -10,12 +10,12 @@ interface Props {
 
 export class Login extends React.Component<Props> {
   static defaultProps = {
-    component: LoginView
+    component: LoginView,
   };
 
   state = {
     username: "",
-    password: ""
+    password: "",
   };
 
   setUsername = (event: React.ChangeEvent<HTMLInputElement>): void =>
@@ -36,7 +36,7 @@ export class Login extends React.Component<Props> {
       username: this.state.username,
       setUsername: this.setUsername,
       password: this.state.password,
-      setPassword: this.setPassword
+      setPassword: this.setPassword,
     };
 
     if (!React.isValidElement(this.props.component)) {

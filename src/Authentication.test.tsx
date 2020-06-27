@@ -79,10 +79,7 @@ describe("<Authentication />", () => {
 
     // Login component should have gotten a navigation method from the <Authentication /> component,
     // and calling it should advance to the signup screen
-    component
-      .find(Login)
-      .props()
-      .navigateToSignUp();
+    component.find(Login).props().navigateToSignUp();
 
     expect(component.containsMatchingElement(<SignUp />)).toBe(true);
   });
@@ -118,12 +115,9 @@ describe("<Authentication />", () => {
     // Update the component
     component.update();
 
-    expect(
-      component
-        .find(".error")
-        .text()
-        .trim()
-    ).toBe("Username, password and email are required fields.");
+    expect(component.find(".error").text().trim()).toBe(
+      "Username, password and email are required fields."
+    );
   });
 
   // This is a full end to end test
@@ -134,10 +128,10 @@ describe("<Authentication />", () => {
 
     const App = ({
       user,
-      logout
+      logout,
     }: {
-      user?: {};
-      logout?: () => {};
+      user?: { name: string };
+      logout?: () => void;
     }): React.ReactElement => (
       <>
         <h1>Authenticated</h1>
@@ -150,7 +144,7 @@ describe("<Authentication />", () => {
 
     const component = mount(
       <Authentication
-        debug={true}
+        debug={false}
         adapter="memory"
         url={coudbUrl}
         login={<Login />}
@@ -182,22 +176,22 @@ describe("<Authentication />", () => {
     // Fill in username
     component.find("#username").simulate("change", {
       target: {
-        value: username
-      }
+        value: username,
+      },
     });
 
     // Fill in email
     component.find("#email").simulate("change", {
       target: {
-        value: email
-      }
+        value: email,
+      },
     });
 
     // Fill in password
     component.find("#password").simulate("change", {
       target: {
-        value: password
-      }
+        value: password,
+      },
     });
 
     component.find("#sign-up-button").simulate("click");
@@ -221,15 +215,15 @@ describe("<Authentication />", () => {
     // Fill in username
     component.find("#username").simulate("change", {
       target: {
-        value: username
-      }
+        value: username,
+      },
     });
 
     // Fill in password
     component.find("#password").simulate("change", {
       target: {
-        value: password
-      }
+        value: password,
+      },
     });
 
     component.find("#login-button").simulate("click");
@@ -252,11 +246,11 @@ describe("<Authentication />", () => {
       "_users/org.couchdb.user:" +
       username;
 
-    const user = await fetch(userUrl).then(r => r.json());
+    const user = await fetch(userUrl).then((r) => r.json());
 
     const done = await fetch(userUrl + "?rev=" + user._rev, {
-      method: "DELETE"
-    }).then(r => r.json());
+      method: "DELETE",
+    }).then((r) => r.json());
 
     // We successfully delete the user that we created
     expect(done.ok).toBe(true);

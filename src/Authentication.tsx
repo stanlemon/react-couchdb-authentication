@@ -10,7 +10,7 @@ interface Props {
   /**
    * An application that requires authentication.
    */
-  children?: React.ReactElement<{}>;
+  children?: React.ReactElement;
   /**
    * Adapter for use by the local PouchDB instance, defaults to "idb".
    */
@@ -46,7 +46,7 @@ interface Props {
   /**
    * A component to be used when loading, defaults to a fragment with the text "Loading...".
    */
-  loading?: React.ReactElement<{}>;
+  loading?: React.ReactElement;
 }
 
 interface State {
@@ -87,7 +87,7 @@ export class Authentication extends React.Component<Props, State> {
     loading: <>Loading...</>,
     debug: false,
     sync: true,
-    adapter: "idb"
+    adapter: "idb",
   };
 
   state = {
@@ -100,12 +100,12 @@ export class Authentication extends React.Component<Props, State> {
     // User object, if they are logged in
     user: null,
     // Internal route path, defaults to the login screen
-    internalRoute: ROUTE_LOGIN
+    internalRoute: ROUTE_LOGIN,
   };
 
   private localDb: PouchDB.Database;
   private remoteDb: PouchDB.Database;
-  private syncHandler: PouchDB.Replication.Sync<{}>;
+  private syncHandler: PouchDB.Replication.Sync<Record<string, unknown>>;
   private checkSessionInterval: number;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -118,6 +118,7 @@ export class Authentication extends React.Component<Props, State> {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private error(...args: any): void {
+    console.log(args);
     if (this.props.debug) {
       // eslint-disable-next-line no-console
       console.error.apply(null, args);
@@ -144,7 +145,7 @@ export class Authentication extends React.Component<Props, State> {
   ): Promise<void> => {
     if (!username || !password || !email) {
       this.setState({
-        error: "Username, password and email are required fields."
+        error: "Username, password and email are required fields.",
       });
       return;
     }
@@ -158,7 +159,7 @@ export class Authentication extends React.Component<Props, State> {
       type: "user",
       _id: userId,
       // TODO: Allow for any metadata
-      metadata: { email }
+      metadata: { email },
     };
 
     try {
@@ -168,7 +169,7 @@ export class Authentication extends React.Component<Props, State> {
         ok?: boolean;
       }>(this.props.url + "_users/" + userId, {
         method: "PUT",
-        body: JSON.stringify(user)
+        body: JSON.stringify(user),
       });
 
       if (response.error) {
@@ -213,17 +214,20 @@ export class Authentication extends React.Component<Props, State> {
     );
   }
 
-  private fetch<T>(url: string, options: {} = {}): Promise<T> {
+  private fetch<T>(
+    url: string,
+    options: Record<string, unknown> = {}
+  ): Promise<T> {
     return fetch(url, {
       ...options,
       ...{
         cache: "no-cache",
         credentials: "include",
         headers: {
-          "Content-Type": "application/json"
-        }
-      }
-    }).then(r => r.json());
+          "Content-Type": "application/json",
+        },
+      },
+    }).then((r) => r.json());
   }
 
   private async checkSession(): Promise<void> {
@@ -238,7 +242,7 @@ export class Authentication extends React.Component<Props, State> {
       this.setState({
         loaded: true,
         authenticated: isLoggedIn,
-        user: session.userCtx
+        user: session.userCtx,
       });
 
       // If we are logged in and have not yet setup our remote db connection, set it up
@@ -254,14 +258,14 @@ export class Authentication extends React.Component<Props, State> {
   private logout = async (): Promise<void> => {
     try {
       await this.fetch(this.props.url + "_session", {
-        method: "DELETE"
+        method: "DELETE",
       });
 
       // Clear the user and redirect them to our login screen
       this.setState({
         user: null,
         authenticated: false,
-        internalRoute: ROUTE_LOGIN
+        internalRoute: ROUTE_LOGIN,
       });
     } catch (err) {
       this.error(err);
@@ -279,7 +283,7 @@ export class Authentication extends React.Component<Props, State> {
         this.props.url + "_session",
         {
           method: "POST",
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify({ username, password }),
         }
       );
 
@@ -294,7 +298,7 @@ export class Authentication extends React.Component<Props, State> {
 
   private setupDb(): Promise<void> {
     this.localDb = new PouchDB("user", {
-      adapter: this.props.adapter
+      adapter: this.props.adapter,
     });
 
     const opts = {
@@ -303,7 +307,7 @@ export class Authentication extends React.Component<Props, State> {
         // In PouchDB 7.0 they dropped this and it breaks cookie authentication, so we set this explicitly
         opts.credentials = "include";
         return PouchDB.fetch(url, opts);
-      }
+      },
     };
 
     const userDbUrl = this.getUserDbUrl(this.state.user.name);
@@ -320,14 +324,14 @@ export class Authentication extends React.Component<Props, State> {
 
     this.syncHandler = PouchDB.sync(this.localDb, this.remoteDb, {
       live: true,
-      retry: true
+      retry: true,
     });
 
     this.syncHandler
-      .on("change", info => this.log("Change", info))
-      .on("paused", err => this.error("Paused", err))
-      .on("complete", info => this.log("Complete", info))
-      .on("error", err => this.error("Error", err));
+      .on("change", (info) => this.log("Change", info))
+      .on("paused", (info) => this.log("Syncing Paused", info))
+      .on("complete", (info) => this.log("Complete", info))
+      .on("error", (err) => this.error("Error", err));
   }
 
   componentDidMount(): void {
@@ -368,10 +372,10 @@ export class Authentication extends React.Component<Props, State> {
           navigateToLogin: (): void =>
             this.setState({
               error: null,
-              internalRoute: ROUTE_LOGIN
+              internalRoute: ROUTE_LOGIN,
             }),
           error: this.state.error,
-          signUp: this.signUp
+          signUp: this.signUp,
         };
 
         if (!React.isValidElement(this.props.signup)) {
@@ -386,10 +390,10 @@ export class Authentication extends React.Component<Props, State> {
         navigateToSignUp: (): void =>
           this.setState({
             error: null,
-            internalRoute: ROUTE_SIGNUP
+            internalRoute: ROUTE_SIGNUP,
           }),
         error: this.state.error,
-        login: this.login
+        login: this.login,
       };
 
       // If we aren't on the signup screen we should return the login screen
@@ -409,7 +413,7 @@ export class Authentication extends React.Component<Props, State> {
       db: this.localDb,
       remoteDb: this.remoteDb,
       logout: this.logout,
-      user: this.state.user
+      user: this.state.user,
     };
 
     // TODO: Remove the props overrides, the Context should be the only way to get these.

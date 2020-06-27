@@ -1,13 +1,15 @@
 {
   "compilerOptions": {
     "sourceMap": true,
+    "declarationMap": true,
     "outDir": "./dist",
-    "module": "commonjs",
+    "noImplicitAny": true,
+    "moduleResolution": "node",
+    "module": "esnext",
     "target": "es6",
     "jsx": "react",
     "lib": ["esnext", "dom"],
-    "allowSyntheticDefaultImports": true,
-    "declaration": true
+    "allowSyntheticDefaultImports": true
   },
   "include": ["./src/**/*"],
   "exclude": ["node_modules", "./src/**/*.test.*"]
