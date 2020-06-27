@@ -61,7 +61,7 @@ interface State {
   /**
    * An error message if something has gone wrong.
    */
-  error: string;
+  error?: string;
   /**
    * Whether or not the user is currently authenticated to the remote CouchDB instance.
    */
@@ -69,7 +69,7 @@ interface State {
   /**
    * Current authenticated user.
    */
-  user: {
+  user?: {
     /**
      * Current authenticated user's name (used as part of it's document).
      */
@@ -101,7 +101,7 @@ export class Authentication extends React.Component<Props, State> {
     user: null,
     // Internal route path, defaults to the login screen
     internalRoute: ROUTE_LOGIN,
-  };
+  } as State;
 
   private localDb: PouchDB.Database;
   private remoteDb: PouchDB.Database;
@@ -118,7 +118,6 @@ export class Authentication extends React.Component<Props, State> {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private error(...args: any): void {
-    console.log(args);
     if (this.props.debug) {
       // eslint-disable-next-line no-console
       console.error.apply(null, args);
@@ -155,7 +154,7 @@ export class Authentication extends React.Component<Props, State> {
     const user = {
       name: username,
       password,
-      roles: [],
+      roles: [] as string[],
       type: "user",
       _id: userId,
       // TODO: Allow for any metadata

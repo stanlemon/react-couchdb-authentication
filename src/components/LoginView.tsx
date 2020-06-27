@@ -1,6 +1,6 @@
 import * as React from "react";
 
-interface Props {
+export interface LoginViewProps {
   error: string;
   username: string;
   setUsername(event: React.FormEvent<HTMLInputElement>): void;
@@ -10,7 +10,7 @@ interface Props {
   navigateToSignUp(): void;
 }
 
-export function LoginView(props: Props): JSX.Element {
+export function LoginView(props: LoginViewProps): React.ReactElement {
   const clickToSignUp = (e: React.MouseEvent): void => {
     e.preventDefault();
     props.navigateToSignUp();
