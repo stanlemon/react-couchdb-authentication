@@ -4,11 +4,20 @@ import PropTypes from "prop-types";
 import { Authentication } from "../src";
 
 // Our application when a user is logged in.
-function App({ logout, user }) {
+function App({
+  logout,
+  user,
+}: {
+  logout(): void;
+  user: { name: string; email: string };
+}) {
   return (
     <>
       <h1>Hello!</h1>
-      <h2>This is an authenticated page, belonging to user {user.name}.</h2>
+      <h2>
+        This is an authenticated page, belonging to user{" "}
+        <a href={`mailto:${user.email}`}>{user.name}</a>.
+      </h2>
       <p>
         <a onClick={logout}>Click here to logout.</a>
       </p>

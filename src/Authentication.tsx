@@ -245,31 +245,46 @@ export class Authentication extends React.Component<Props, State> {
     }).then((r) => r.json());
   }
 
+  private async grabSession(): Promise<{ name: string }> {
+    // If we have a remoteDb, we'll use it. This works better in Safari which does
+    // not support storing cross-origin cookies across multiple requests.
+    if (this.remoteDb) {
+      // This is not exposed via the TypeScript definition for PouchDB.Database
+      // but it is added by the HTTP adapter, and we've accounted for it on the property
+      const user = await this.remoteDb
+        .fetch(`../_users/org.couchdb.user:${this.state.user.name}`)
+        .then((d) => d.json());
+
+      return user;
+    } else {
+      const session = await this.fetch<{
+        userCtx: { name: string };
+      }>(this.props.url + "_session");
+
+      return session.userCtx;
+    }
+  }
+
   private async checkSession(): Promise<void> {
     try {
-      // If we have a remoteDb, we'll use it. This works better in Safari which does
-      // not support storing cross-origin cookies across multiple requests.
-      const session = this.remoteDb
-        ? // This is not exposed via the TypeScript definition for PouchDB.Database
-          // but it is added by the HTTP adapter, and we've accounted for it on the property
-          await this.remoteDb.fetch("../_session").then((d) => d.json())
-        : await this.fetch<{ userCtx: { name: string } }>(
-            this.props.url + "_session"
-          );
-      this.log("User session", session);
+      const user = await this.grabSession();
 
-      const isLoggedIn = !!session.userCtx.name;
+      this.log("User session", user);
+
+      const isLoggedIn = user !== null && user.name !== null;
 
       this.setState({
         loaded: true,
         authenticated: isLoggedIn,
-        user: session.userCtx,
+        user,
       });
 
       // If we are logged in and have not yet setup our remote db connection, set it up
       if (isLoggedIn && !this.remoteDb) {
         this.log("User is already logged in, setting up db.");
         this.setupDb();
+        // Immediately check the session again so we fully load the user
+        this.checkSession();
       }
     } catch (err) {
       this.error(err);
