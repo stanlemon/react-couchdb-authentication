@@ -2,6 +2,7 @@ import * as React from "react";
 import PouchDB from "pouchdb";
 import retry from "async-retry";
 import "isomorphic-fetch";
+import { Login, LoginView, SignUp, SignUpView } from "./components";
 
 const ROUTE_LOGIN = "login";
 const ROUTE_SIGNUP = "signup";
@@ -47,6 +48,10 @@ interface Props {
    * A component to be used when loading, defaults to a fragment with the text "Loading...".
    */
   loading?: React.ReactElement;
+  /**
+   * Interval to check the session.
+   */
+  sessionInterval: number;
 }
 
 interface State {
@@ -84,10 +89,13 @@ export const AuthenticationContext = React.createContext({});
  */
 export class Authentication extends React.Component<Props, State> {
   static defaultProps = {
+    login: <Login component={LoginView} />,
+    signup: <SignUp component={SignUpView} />,
     loading: <>Loading...</>,
     debug: false,
     sync: true,
     adapter: "idb",
+    sessionInterval: 15000,
   };
 
   state = {
@@ -104,7 +112,15 @@ export class Authentication extends React.Component<Props, State> {
   } as State;
 
   private localDb: PouchDB.Database;
-  private remoteDb: PouchDB.Database;
+  private remoteDb: PouchDB.Database &
+    // Does this look weird? It should!
+    // The fetch method is added by the http adapter, but it's not exported.
+    // In order to use it below we declare it here, but to avoid other problems
+    // we've made it as a partial. Sometimes types are hard!
+    Partial<{
+      fetch(url: string | Request, opts?: RequestInit): Promise<Response>;
+    }>;
+
   private syncHandler: PouchDB.Replication.Sync<Record<string, unknown>>;
   private checkSessionInterval: number;
 
@@ -231,9 +247,15 @@ export class Authentication extends React.Component<Props, State> {
 
   private async checkSession(): Promise<void> {
     try {
-      const session = await this.fetch<{ userCtx: { name: string } }>(
-        this.props.url + "_session"
-      );
+      // If we have a remoteDb, we'll use it. This works better in Safari which does
+      // not support storing cross-origin cookies across multiple requests.
+      const session = this.remoteDb
+        ? // This is not exposed via the TypeScript definition for PouchDB.Database
+          // but it is added by the HTTP adapter, and we've accounted for it on the property
+          await this.remoteDb.fetch("../_session").then((d) => d.json())
+        : await this.fetch<{ userCtx: { name: string } }>(
+            this.props.url + "_session"
+          );
       this.log("User session", session);
 
       const isLoggedIn = !!session.userCtx.name;
@@ -246,6 +268,7 @@ export class Authentication extends React.Component<Props, State> {
 
       // If we are logged in and have not yet setup our remote db connection, set it up
       if (isLoggedIn && !this.remoteDb) {
+        this.log("User is already logged in, setting up db.");
         this.setupDb();
       }
     } catch (err) {
@@ -288,14 +311,14 @@ export class Authentication extends React.Component<Props, State> {
 
       this.setState({ authenticated: true, user });
 
-      this.setupDb();
+      this.setupDb(username, password);
     } catch (err) {
       this.setState({ authenticated: false, user: null });
       this.error(err);
     }
   };
 
-  private setupDb(): Promise<void> {
+  private setupDb(username?: string, password?: string): Promise<void> {
     this.localDb = new PouchDB("user", {
       adapter: this.props.adapter,
     });
@@ -307,6 +330,15 @@ export class Authentication extends React.Component<Props, State> {
         opts.credentials = "include";
         return PouchDB.fetch(url, opts);
       },
+      // Safari does some weird stuff if we don't do this, Chrome and Firefox work fine
+      ...(username && password
+        ? {
+            auth: {
+              username,
+              password,
+            },
+          }
+        : {}),
     };
 
     const userDbUrl = this.getUserDbUrl(this.state.user.name);
@@ -342,7 +374,7 @@ export class Authentication extends React.Component<Props, State> {
 
     this.checkSessionInterval = window.setInterval(() => {
       this.checkSession();
-    }, 15000);
+    }, this.props.sessionInterval);
   }
 
   async componentWillUnmount(): Promise<void> {
