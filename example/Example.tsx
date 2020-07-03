@@ -52,7 +52,7 @@ function Example() {
         // Run everything a little faster, for testing
         sessionInterval={3000}
         // The example app is accessed on localhost, so this is helpful testing cross-origin shenanigans
-        url="http://127.0.0.1:5984/"
+        url="http://localhost:5984/"
       >
         <App />
       </Authentication>
