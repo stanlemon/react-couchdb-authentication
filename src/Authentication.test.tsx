@@ -11,7 +11,7 @@ import fetch from "isomorphic-fetch";
 PouchDB.plugin(require("pouchdb-adapter-memory"));
 
 describe("<Authentication />", () => {
-  const coudbUrl = process.env.COUCHDB_URL || "http://127.0.0.1:5984/";
+  const coudbUrl = process.env.COUCHDB_URL || "http://localhost:5984/";
 
   it("Throws an error when a database is not specified", () => {
     const t = (): void => {

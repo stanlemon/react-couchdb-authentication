@@ -16,6 +16,7 @@ before_script:
   - curl -X PUT http://admin:password@localhost:5984/_node/_local/_config/couch_peruser/enable -d "\"true\""
   - curl -X PUT http://admin:password@localhost:5984/_node/_local/_config/couch_peruser/delete_dbs -d "\"true\""
   - curl http://admin:password@localhost:5984/_node/_local/_config/couch_peruser
+  - curl -s -X PUT http://admin:password@localhost:5984/_users
 
 node_js:
   - "13"
