@@ -6,6 +6,7 @@ services:
 language: node_js
 
 before_install:
+  - docker build . -t couchdb:3
   - docker run -d --name my-couchdb -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password couchdb:3
   - docker run -p 5984:5984 -d couchdb
 
