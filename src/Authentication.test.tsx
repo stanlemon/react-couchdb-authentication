@@ -199,6 +199,8 @@ describe("<Authentication />", () => {
     await waitForExpect(() => {
       component.update();
 
+      console.log(component.debug());
+
       expect(component.find("h1").text()).toBe("Authenticated");
       expect(component.find("h2").text()).toBe("Hello " + username);
     });

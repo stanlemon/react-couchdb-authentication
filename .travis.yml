@@ -1,15 +1,18 @@
+dist: bionic
+
 services: 
   - couchdb
 
 language: node_js
 
+node_js:
+  - "13"
+
 before_script:
+  - curl -X PUT localhost:5984/myapp_test
   - curl localhost:5984/
   - curl localhost:5984/_membership
   - curl -X PUT localhost:5984/_node/_local/_config/couch_peruser/enable -d "\"true\""
   - curl -X PUT localhost:5984/_node/_local/_config/couch_peruser/delete_dbs -d "\"true\""
   - curl localhost:5984/_node/_local/_config/couch_peruser
-  - curl -X PUT localhost:5984/myapp_test
 
-node_js:
-  - "13"

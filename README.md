@@ -32,7 +32,7 @@ The `<Authentication/>` component is easy to use, simply wrap your `<App />` and
 
 ```jsx
 <Authentication
-  url="http://localhost:59"
+  url="http://localhost:5984"
   login={<Login />}
   signup={<SignUp />}
 />
