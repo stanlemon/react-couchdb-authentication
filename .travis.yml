@@ -1,9 +1,13 @@
 dist: bionic
 
-services:
-  - couchdb
-
 language: node_js
+
+before_install:
+  - sudo apt-get purge couchdb
+  - curl -L https://couchdb.apache.org/repo/bintray-pubkey.asc | sudo apt-key add -
+  - echo "deb https://apache.bintray.com/couchdb-deb bionic main" | sudo tee -a /etc/apt/sources.list
+  - sudo apt-get -q update
+  - sudo apt-get -y install couchdb
 
 before_script:
   - until ruby -rsocket -e "TCPSocket.new('localhost',5984)"; do sleep 1; done
