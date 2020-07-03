@@ -1,21 +1,28 @@
 dist: bionic
 
+services:
+  - docker
+
 language: node_js
-
-before_install:
-  - sudo apt-get purge couchdb
-  - curl -L https://couchdb.apache.org/repo/bintray-pubkey.asc | sudo apt-key add -
-  - echo "deb https://apache.bintray.com/couchdb-deb bionic main" | sudo tee -a /etc/apt/sources.list
-  - sudo apt-get -q update
-  - sudo apt-get -y install couchdb
-
-before_script:
-  - until ruby -rsocket -e "TCPSocket.new('localhost',5984)"; do sleep 1; done
-  - curl localhost:5984/
-  - curl localhost:5984/_membership
-  - curl -X PUT localhost:5984/_node/_local/_config/couch_peruser/enable -d "\"true\""
-  - curl -X PUT localhost:5984/_node/_local/_config/couch_peruser/delete_dbs -d "\"true\""
-  - curl localhost:5984/_node/_local/_config/couch_peruser
 
 node_js:
   - "13"
+
+before_install:
+  - docker pull couchdb:3
+  - docker run -p 5984:5984 -d --name test-couchdb -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password couchdb:3
+
+before_script:
+  - curl http://admin:password@localhost:5984/
+  - curl -X PUT http://admin:password@localhost:5984/_node/_local/_config/httpd/enable_cors -d "\"true\""
+  - curl -X PUT http://admin:password@localhost:5984/_node/_local/_config/cors/credentials -d "\"true\""
+  - curl -X PUT http://admin:password@localhost:5984/_node/_local/_config/cors/headers -d "\"accept, authorization, content-type, origin, referer\""
+  - curl -X PUT http://admin:password@localhost:5984/_node/_local/_config/cors/methods -d "\"GET, PUT, POST, HEAD, DELETE\""
+  - curl -X PUT http://admin:password@localhost:5984/_node/_local/_config/cors/origins -d "\"*\""
+  - curl -X PUT http://admin:password@localhost:5984/_node/_local/_config/cors/origins -d "\"*\"" 
+  - curl -X PUT http://admin:password@localhost:5984/_node/_local/_config/couch_peruser/enable -d "\"true\""
+  - curl -X PUT http://admin:password@localhost:5984/_node/_local/_config/couch_peruser/delete_dbs -d "\"true\""
+  - curl -X PUT http://admin:password@localhost:5984/_node/_local/_config/couchdb/default_security -d "\"everyone\""
+  - curl http://admin:password@localhost:5984/_node/_local/_config
+  - curl -s -X PUT http://admin:password@localhost:5984/_users
+
