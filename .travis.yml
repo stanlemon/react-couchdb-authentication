@@ -7,13 +7,11 @@ language: node_js
 
 before_install:
   - docker pull couchdb:3
-  - docker run -d --name my-couchdb -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password couchdb:3
-  - docker run -p 5984:5984 -d couchdb
+  - docker run -p 5984:5984 -d --name test-couchdb -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password couchdb:3
 
 before_script:
   #- until ruby -rsocket -e "TCPSocket.new('127.0.0.1',5984)"; do sleep 1; done
-  #- curl localhost:5984/
-  - curl 127.0.0.1:5984/
+  - curl localhost:5984/
   - curl localhost:5984/_membership
   - curl -X PUT localhost:5984/_node/_local/_config/couch_peruser/enable -d "\"true\""
   - curl -X PUT localhost:5984/_node/_local/_config/couch_peruser/delete_dbs -d "\"true\""
