@@ -4,13 +4,12 @@
     "declaration": true,
     "declarationMap": true,
     "outDir": "./dist",
+    "esModuleInterop": true,
     "noImplicitAny": true,
-    "moduleResolution": "node",
-    "module": "esnext",
-    "target": "es6",
+    "module": "commonjs",
+    "target": "esnext",
     "jsx": "react",
-    "lib": ["esnext", "dom"],
-    "allowSyntheticDefaultImports": true
+    "lib": ["esnext", "dom"]
   },
   "include": ["./src/**/*"],
   "exclude": ["node_modules", "./src/**/*.test.*"]
