@@ -110,8 +110,8 @@ export class Authentication extends React.Component<Props, State> {
     internalRoute: ROUTE_LOGIN,
   } as State;
 
-  private localDb: PouchDB.Database;
-  private remoteDb: PouchDB.Database &
+  #localDb: PouchDB.Database;
+  #remoteDb: PouchDB.Database &
     // Does this look weird? It should!
     // The fetch method is added by the http adapter, but it's not exported.
     // In order to use it below we declare it here, but to avoid other problems
@@ -120,13 +120,13 @@ export class Authentication extends React.Component<Props, State> {
       fetch(url: string | Request, opts?: RequestInit): Promise<Response>;
     }>;
 
-  private syncHandler: PouchDB.Replication.Sync<Record<string, unknown>>;
-  private checkSessionInterval: number;
+  #syncHandler: PouchDB.Replication.Sync<Record<string, unknown>>;
+  #checkSessionInterval: number;
 
   constructor(props: Props) {
     super(props);
 
-    this.localDb = new PouchDB("user", {
+    this.#localDb = new PouchDB("user", {
       adapter: this.props.adapter,
     });
   }
@@ -256,14 +256,14 @@ export class Authentication extends React.Component<Props, State> {
     // If we have a remoteDb, we'll use it. This works better in Safari which does
     // not support storing cross-origin cookies across multiple requests.
     if (
-      this.remoteDb &&
+      this.#remoteDb &&
       this.state &&
       this.state.user &&
       this.state.user.name
     ) {
       // This is not exposed via the TypeScript definition for PouchDB.Database
       // but it is added by the HTTP adapter, and we've accounted for it on the property
-      const user = await this.remoteDb
+      const user = await this.#remoteDb
         .fetch(`../_users/org.couchdb.user:${this.state.user.name}`)
         .then((d) => d.json());
 
@@ -292,7 +292,7 @@ export class Authentication extends React.Component<Props, State> {
       });
 
       // If we are logged in and have not yet setup our remote db connection, set it up
-      if (isLoggedIn && !this.remoteDb) {
+      if (isLoggedIn && !this.#remoteDb) {
         this.log("User is already logged in, setting up db.");
         this.setupDb();
         // Immediately check the session again so we fully load the user
@@ -366,7 +366,7 @@ export class Authentication extends React.Component<Props, State> {
 
     const userDbUrl = this.getUserDbUrl(this.state.user.name);
 
-    this.remoteDb = new PouchDB(userDbUrl, opts);
+    this.#remoteDb = new PouchDB(userDbUrl, opts);
 
     // This is because we're setting important properties that aren't in state
     this.forceUpdate();
@@ -376,12 +376,12 @@ export class Authentication extends React.Component<Props, State> {
       return;
     }
 
-    this.syncHandler = PouchDB.sync(this.localDb, this.remoteDb, {
+    this.#syncHandler = PouchDB.sync(this.#localDb, this.#remoteDb, {
       live: true,
       retry: true,
     });
 
-    this.syncHandler
+    this.#syncHandler
       .on("change", (info) => this.log("Change", info))
       .on("paused", (info) => this.log("Syncing Paused", info))
       .on("complete", (info) => this.log("Complete", info))
@@ -395,25 +395,25 @@ export class Authentication extends React.Component<Props, State> {
 
     this.checkSession();
 
-    this.checkSessionInterval = window.setInterval(() => {
+    this.#checkSessionInterval = window.setInterval(() => {
       this.checkSession();
     }, this.props.sessionInterval);
   }
 
   async componentWillUnmount(): Promise<void> {
-    clearInterval(this.checkSessionInterval);
+    clearInterval(this.#checkSessionInterval);
 
     // Will not be set if sync has been disabled
-    if (this.syncHandler) {
-      await this.syncHandler.cancel();
+    if (this.#syncHandler) {
+      await this.#syncHandler.cancel();
     }
 
-    await this.remoteDb.close();
+    await this.#remoteDb.close();
   }
 
   render(): React.ReactNode {
     // If we haven't completed our initial load yet, show a loader
-    if (!this.state.loaded || !this.localDb) {
+    if (!this.state.loaded || !this.#localDb) {
       this.log("Waiting for initial database");
       return this.props.loading;
     }
@@ -433,8 +433,8 @@ export class Authentication extends React.Component<Props, State> {
       });
 
     const props = {
-      db: this.localDb,
-      remoteDb: this.remoteDb,
+      db: this.#localDb,
+      remoteDb: this.#remoteDb,
       authenticated: this.state.authenticated,
       user: this.state.user,
       error: this.state.error,
