@@ -51,6 +51,12 @@ interface Props {
    * Interval to check the session.
    */
   sessionInterval: number;
+  /**
+   * Whether or not to use the out of the box scaffolding for an app that requires login.
+   * The scaffolding include routing to a login view and signup view. This is an easy turn key way
+   * to get started!
+   */
+  scaffold: boolean;
 }
 
 interface State {
@@ -95,6 +101,7 @@ export class Authentication extends React.Component<Props, State> {
     sync: true,
     adapter: "idb",
     sessionInterval: 15000,
+    scaffold: true,
   };
 
   state = {
@@ -446,7 +453,7 @@ export class Authentication extends React.Component<Props, State> {
     };
 
     // We have loaded our remote database but we are not authenticated
-    if (!this.state.authenticated) {
+    if (this.props.scaffold && !this.state.authenticated) {
       if (this.state.internalRoute === ROUTE_SIGNUP) {
         return React.cloneElement(this.props.signup, props);
       }
