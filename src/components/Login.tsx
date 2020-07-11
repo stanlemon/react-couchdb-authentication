@@ -18,25 +18,25 @@ export class Login extends React.Component<LoginProps> {
     password: "",
   };
 
-  setUsername = (event: React.ChangeEvent<HTMLInputElement>): void =>
+  #setUsername = (event: React.ChangeEvent<HTMLInputElement>): void =>
     this.setState({ username: event.target.value });
 
-  setPassword = (event: React.ChangeEvent<HTMLInputElement>): void =>
+  #setPassword = (event: React.ChangeEvent<HTMLInputElement>): void =>
     this.setState({ password: event.target.value });
 
-  login = (): void => {
+  #login = (): void => {
     this.props.login(this.state.username, this.state.password);
   };
 
   render(): React.ReactNode {
     const props = {
       error: this.props.error,
-      login: this.login,
+      login: this.#login,
       navigateToSignUp: this.props.navigateToSignUp,
       username: this.state.username,
-      setUsername: this.setUsername,
+      setUsername: this.#setUsername,
       password: this.state.password,
-      setPassword: this.setPassword,
+      setPassword: this.#setPassword,
     };
     return React.createElement(this.props.component, props);
   }

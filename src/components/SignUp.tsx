@@ -19,17 +19,17 @@ export class SignUp extends React.Component<SignUpProps> {
     password: "",
   };
 
-  setUsername = (event: React.ChangeEvent<HTMLInputElement>): void => {
+  #setUsername = (event: React.ChangeEvent<HTMLInputElement>): void => {
     this.setState({ username: event.target.value });
   };
 
-  setEmail = (event: React.ChangeEvent<HTMLInputElement>): void =>
+  #setEmail = (event: React.ChangeEvent<HTMLInputElement>): void =>
     this.setState({ email: event.target.value });
 
-  setPassword = (event: React.ChangeEvent<HTMLInputElement>): void =>
+  #setPassword = (event: React.ChangeEvent<HTMLInputElement>): void =>
     this.setState({ password: event.target.value });
 
-  signUp = (): void => {
+  #signUp = (): void => {
     this.props.signUp(
       this.state.username,
       this.state.password,
@@ -40,14 +40,14 @@ export class SignUp extends React.Component<SignUpProps> {
   render(): React.ReactNode {
     const props = {
       error: this.props.error,
-      signUp: this.signUp,
+      signUp: this.#signUp,
       navigateToLogin: this.props.navigateToLogin,
       email: this.state.email,
-      setEmail: this.setEmail,
+      setEmail: this.#setEmail,
       username: this.state.username,
-      setUsername: this.setUsername,
+      setUsername: this.#setUsername,
       password: this.state.password,
-      setPassword: this.setPassword,
+      setPassword: this.#setPassword,
     };
 
     return React.createElement(this.props.component, props);
