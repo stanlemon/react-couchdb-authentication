@@ -1,17 +1,16 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import PropTypes from "prop-types";
-import { Authentication } from "../src";
+import { Authentication, withAuthentication } from "../src";
 
 // Our application when a user is logged in.
-function App({
-  logout,
-  user,
-}: {
-  logout(): void;
-  user: { name: string; email: string };
-}) {
-  return (
+const App = withAuthentication(
+  ({
+    user,
+    logout,
+  }: {
+    user?: { name: string; email: string };
+    logout?: () => void;
+  }): React.ReactElement => (
     <>
       <h1>Hello!</h1>
       <h2>
@@ -22,15 +21,8 @@ function App({
         <a onClick={logout}>Click here to logout.</a>
       </p>
     </>
-  );
-}
-
-App.propTypes = {
-  logout: PropTypes.func,
-  user: PropTypes.shape({
-    name: PropTypes.string,
-  }),
-};
+  )
+);
 
 function Example() {
   return (

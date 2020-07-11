@@ -1,8 +1,7 @@
 import * as React from "react";
 import PouchDB from "pouchdb";
 import retry from "async-retry";
-import "isomorphic-fetch";
-import { Login, LoginView, SignUp, SignUpView } from "./components";
+import { Login, LoginView, SignUp, SignUpView } from "../";
 
 const ROUTE_LOGIN = "login";
 const ROUTE_SIGNUP = "signup";
@@ -82,7 +81,7 @@ interface State {
   };
 }
 
-export const AuthenticationContext = React.createContext({});
+export const Context = React.createContext({});
 
 /**
  * Wrap components behind CouchDB authentication and sync the user's database locally.
@@ -123,6 +122,14 @@ export class Authentication extends React.Component<Props, State> {
 
   private syncHandler: PouchDB.Replication.Sync<Record<string, unknown>>;
   private checkSessionInterval: number;
+
+  constructor(props: Props) {
+    super(props);
+
+    this.localDb = new PouchDB("user", {
+      adapter: this.props.adapter,
+    });
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private log(...args: any): void {
@@ -248,7 +255,12 @@ export class Authentication extends React.Component<Props, State> {
   private async grabSession(): Promise<{ name: string }> {
     // If we have a remoteDb, we'll use it. This works better in Safari which does
     // not support storing cross-origin cookies across multiple requests.
-    if (this.remoteDb) {
+    if (
+      this.remoteDb &&
+      this.state &&
+      this.state.user &&
+      this.state.user.name
+    ) {
       // This is not exposed via the TypeScript definition for PouchDB.Database
       // but it is added by the HTTP adapter, and we've accounted for it on the property
       const user = await this.remoteDb
@@ -334,10 +346,6 @@ export class Authentication extends React.Component<Props, State> {
   };
 
   private setupDb(username?: string, password?: string): Promise<void> {
-    this.localDb = new PouchDB("user", {
-      adapter: this.props.adapter,
-    });
-
     const opts = {
       skip_setup: true,
       fetch: (url: string, opts: RequestInit): Promise<Response> => {
@@ -405,78 +413,49 @@ export class Authentication extends React.Component<Props, State> {
 
   render(): React.ReactNode {
     // If we haven't completed our initial load yet, show a loader
-    if (!this.state.loaded) {
-      this.log("Waiting for initial database to load");
+    if (!this.state.loaded || !this.localDb) {
+      this.log("Waiting for initial database");
       return this.props.loading;
     }
 
-    // We have loaded our remote database but we are not authenticated
-    if (!this.state.authenticated) {
-      if (this.state.internalRoute === ROUTE_SIGNUP) {
-        const props = {
-          // Switches to the login screen and clears out any errors
-          navigateToLogin: (): void =>
-            this.setState({
-              error: null,
-              internalRoute: ROUTE_LOGIN,
-            }),
-          error: this.state.error,
-          signUp: this.signUp,
-        };
+    // Switches to the login screen and clears out any errors
+    const navigateToLogin = (): void =>
+      this.setState({
+        error: null,
+        internalRoute: ROUTE_LOGIN,
+      });
 
-        if (!React.isValidElement(this.props.signup)) {
-          return React.createElement(this.props.signup, props);
-        } else {
-          return React.cloneElement(this.props.signup, props);
-        }
-      }
-
-      const props = {
-        // Switches to the sign up screen and clears out any errors
-        navigateToSignUp: (): void =>
-          this.setState({
-            error: null,
-            internalRoute: ROUTE_SIGNUP,
-          }),
-        error: this.state.error,
-        login: this.login,
-      };
-
-      // If we aren't on the signup screen we should return the login screen
-      if (!React.isValidElement(this.props.login)) {
-        return React.createElement(this.props.login, props);
-      } else {
-        return React.cloneElement(this.props.login, props);
-      }
-    }
-
-    if (!this.localDb) {
-      this.log("Local database is not setup yet");
-      return this.props.loading;
-    }
+    // Switches to the sign up screen and clears out any errors
+    const navigateToSignUp = (): void =>
+      this.setState({
+        error: null,
+        internalRoute: ROUTE_SIGNUP,
+      });
 
     const props = {
       db: this.localDb,
       remoteDb: this.remoteDb,
-      logout: this.logout,
+      authenticated: this.state.authenticated,
       user: this.state.user,
+      error: this.state.error,
+      login: this.login,
+      logout: this.logout,
+      signUp: this.signUp,
+      navigateToLogin,
+      navigateToSignUp,
     };
 
-    // TODO: Remove the props overrides, the Context should be the only way to get these.
-
-    // We are authenticated and synced so load our application
-    if (!React.isValidElement(this.props.children)) {
-      return (
-        <AuthenticationContext.Provider value={props}>
-          {React.createElement(this.props.children, props)}
-        </AuthenticationContext.Provider>
-      );
-    } else {
-      return (
-        <AuthenticationContext.Provider value={props}>
-          {React.cloneElement(this.props.children, props)}
-        </AuthenticationContext.Provider>
-      );
+    // We have loaded our remote database but we are not authenticated
+    if (!this.state.authenticated) {
+      if (this.state.internalRoute === ROUTE_SIGNUP) {
+        return React.cloneElement(this.props.signup, props);
+      }
+      // If we aren't on the signup screen we should return the login screen
+      return React.cloneElement(this.props.login, props);
     }
+
+    return (
+      <Context.Provider value={props}>{this.props.children}</Context.Provider>
+    );
   }
 }

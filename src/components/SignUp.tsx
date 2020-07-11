@@ -50,10 +50,6 @@ export class SignUp extends React.Component<SignUpProps> {
       setPassword: this.setPassword,
     };
 
-    if (!React.isValidElement(this.props.component)) {
-      return React.createElement(this.props.component, props);
-    } else {
-      return React.cloneElement(this.props.component, props);
-    }
+    return React.createElement(this.props.component, props);
   }
 }

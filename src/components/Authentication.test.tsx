@@ -3,8 +3,7 @@ import React from "react";
 import { shallow, mount } from "enzyme";
 import PouchDB from "pouchdb";
 import waitForExpect from "wait-for-expect";
-import { Authentication } from "./Authentication";
-import { Login, SignUp } from "./components";
+import { Authentication, Login, SignUp, withAuthentication } from "../";
 import fetch from "isomorphic-fetch";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -126,20 +125,22 @@ describe("<Authentication />", () => {
     const password = "password";
     const email = "email@example.com";
 
-    const App = ({
-      user,
-      logout,
-    }: {
-      user?: { name: string };
-      logout?: () => void;
-    }): React.ReactElement => (
-      <>
-        <h1>Authenticated</h1>
-        <h2>Hello {user.name}</h2>
-        <a id="logout" href="#" onClick={logout}>
-          Click to logout
-        </a>
-      </>
+    const App = withAuthentication(
+      ({
+        user,
+        logout,
+      }: {
+        user?: { name: string; email: string };
+        logout?: () => void;
+      }): React.ReactElement => (
+        <>
+          <h1>Authenticated</h1>
+          <h2>Hello {user.name}</h2>
+          <a id="logout" href="#" onClick={logout}>
+            Click to logout
+          </a>
+        </>
+      )
     );
 
     const component = mount(

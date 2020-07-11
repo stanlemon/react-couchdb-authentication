@@ -38,11 +38,6 @@ export class Login extends React.Component<LoginProps> {
       password: this.state.password,
       setPassword: this.setPassword,
     };
-
-    if (!React.isValidElement(this.props.component)) {
-      return React.createElement(this.props.component, props);
-    } else {
-      return React.cloneElement(this.props.component, props);
-    }
+    return React.createElement(this.props.component, props);
   }
 }
