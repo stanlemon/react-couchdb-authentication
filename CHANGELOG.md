@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2 (July 12, 2020)
+
+* Lower tsconfig target when building to `es2020`.
+
 ## 0.3.1 (July 11, 2020)
 
 * Added the `scaffold` property that allows the disabling of the internal routing and rendering of the logins/signup views.
