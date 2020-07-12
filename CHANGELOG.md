@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.0.0 (July 12, 2020)
+
+* `<Login />` and `<SignUp />` no longer require properties other than `component`, making them easier to use in contexts where `scaffold` is set to `false`.
+
 ## 0.3.2 (July 12, 2020)
 
 * Lower tsconfig target when building to `es2020`.

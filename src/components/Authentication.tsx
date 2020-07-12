@@ -1,7 +1,10 @@
 import * as React from "react";
 import PouchDB from "pouchdb";
 import retry from "async-retry";
-import { Login, LoginView, SignUp, SignUpView } from "../";
+import { Login } from "./Login";
+import { LoginView } from "./LoginView";
+import { SignUp } from "./SignUp";
+import { SignUpView } from "./SignUpView";
 
 const ROUTE_LOGIN = "login";
 const ROUTE_SIGNUP = "signup";
@@ -30,19 +33,11 @@ interface Props {
   /**
    * A component to be used for the login screen.
    */
-  login: React.ReactElement<{
-    error: string;
-    login(username: string, password: string): void;
-    navigateToSignUp(): void;
-  }>;
+  login: React.ReactElement;
   /**
    * A component to be used for the signup screen.
    */
-  signup: React.ReactElement<{
-    error: string;
-    signUp(username: string, password: string, email: string): void;
-    navigateToLogin(): void;
-  }>;
+  signup: React.ReactElement;
   /**
    * A component to be used when loading, defaults to a fragment with the text "Loading...".
    */
@@ -415,7 +410,9 @@ export class Authentication extends React.Component<Props, State> {
       await this.#syncHandler.cancel();
     }
 
-    await this.#remoteDb.close();
+    if (this.#remoteDb) {
+      await this.#remoteDb.close();
+    }
   }
 
   render(): React.ReactNode {
@@ -439,7 +436,7 @@ export class Authentication extends React.Component<Props, State> {
         internalRoute: ROUTE_SIGNUP,
       });
 
-    const props = {
+    const value = {
       db: this.#localDb,
       remoteDb: this.#remoteDb,
       authenticated: this.state.authenticated,
@@ -452,17 +449,21 @@ export class Authentication extends React.Component<Props, State> {
       navigateToSignUp,
     };
 
+    return (
+      <Context.Provider value={value}>{this.renderChildren()}</Context.Provider>
+    );
+  }
+
+  private renderChildren(): React.ReactElement {
     // We have loaded our remote database but we are not authenticated
     if (this.props.scaffold && !this.state.authenticated) {
       if (this.state.internalRoute === ROUTE_SIGNUP) {
-        return React.cloneElement(this.props.signup, props);
+        return React.cloneElement(this.props.signup);
       }
       // If we aren't on the signup screen we should return the login screen
-      return React.cloneElement(this.props.login, props);
+      return React.cloneElement(this.props.login);
     }
 
-    return (
-      <Context.Provider value={props}>{this.props.children}</Context.Provider>
-    );
+    return this.props.children;
   }
 }

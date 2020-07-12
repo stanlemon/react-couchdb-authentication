@@ -62,7 +62,7 @@ describe("<Authentication />", () => {
   });
 
   it("Component renders <Signup /> when navigated to", async () => {
-    const component = shallow(
+    const component = mount(
       <Authentication
         adapter="memory"
         url={coudbUrl}
@@ -76,9 +76,17 @@ describe("<Authentication />", () => {
       expect(component.state().loaded).toBe(true);
     });
 
+    component.update();
+
     // Login component should have gotten a navigation method from the <Authentication /> component,
     // and calling it should advance to the signup screen
-    component.find(Login).props().navigateToSignUp();
+    component.find("#navigate-to-sign-up").simulate("click");
+
+    // Now check for the loaded state to change
+    await waitForExpect(() => {
+      component.update();
+      expect(component.state().internalRoute).toBe("signup");
+    });
 
     expect(component.containsMatchingElement(<SignUp />)).toBe(true);
   });

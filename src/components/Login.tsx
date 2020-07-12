@@ -1,11 +1,9 @@
 import * as React from "react";
+import { Context } from "./Authentication";
 import { LoginView, LoginViewProps } from "./LoginView";
 
 export interface LoginProps {
   component?: React.ComponentType<LoginViewProps>;
-  error?: string;
-  login?(username: string, password: string): void;
-  navigateToSignUp?(): void;
 }
 
 export class Login extends React.Component<LoginProps> {
@@ -24,20 +22,32 @@ export class Login extends React.Component<LoginProps> {
   #setPassword = (event: React.ChangeEvent<HTMLInputElement>): void =>
     this.setState({ password: event.target.value });
 
-  #login = (): void => {
-    this.props.login(this.state.username, this.state.password);
-  };
-
   render(): React.ReactNode {
-    const props = {
-      error: this.props.error,
-      login: this.#login,
-      navigateToSignUp: this.props.navigateToSignUp,
-      username: this.state.username,
-      setUsername: this.#setUsername,
-      password: this.state.password,
-      setPassword: this.#setPassword,
-    };
-    return React.createElement(this.props.component, props);
+    return (
+      <Context.Consumer>
+        {({
+          error,
+          login,
+          navigateToSignUp,
+        }: {
+          error: string;
+          login(username: string, password: string): void;
+          navigateToSignUp(): void;
+        }) => {
+          const props = {
+            error,
+            login: (): void => {
+              login(this.state.username, this.state.password);
+            },
+            navigateToSignUp,
+            username: this.state.username,
+            setUsername: this.#setUsername,
+            password: this.state.password,
+            setPassword: this.#setPassword,
+          };
+          return React.createElement(this.props.component, props);
+        }}
+      </Context.Consumer>
+    );
   }
 }
