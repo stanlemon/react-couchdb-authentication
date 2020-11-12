@@ -19,6 +19,15 @@ jobs:
             ${{ runner.OS }}-npm-
             ${{ runner.OS }}-
 
+      - name: Set up CouchDB
+        uses: "cobot/couchdb-action@master"
+        with:
+          couchdb version: '2.3.1'
+
+      - name: Check CouchDB
+        run: |
+          curl http://localhost:5984/
+
       - name: Setup Node.js environment
         uses: actions/setup-node@v1.4.2
         with:
