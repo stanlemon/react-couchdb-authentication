@@ -9,9 +9,9 @@ import fetch from "isomorphic-fetch";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 PouchDB.plugin(require("pouchdb-adapter-memory"));
 
-describe("<Authentication />", () => {
-  const coudbUrl = process.env.COUCHDB_URL || "http://localhost:5984/";
+const couchDbUrl = process.env.COUCHDB_URL || "http://localhost:5984/";
 
+describe("<Authentication />", () => {
   it("Throws an error when a database is not specified", () => {
     const t = (): void => {
       shallow(
@@ -32,7 +32,7 @@ describe("<Authentication />", () => {
     const component = shallow(
       <Authentication
         adapter="memory"
-        url={coudbUrl}
+        url={couchDbUrl}
         login={<Login />}
         signup={<SignUp />}
       />
@@ -46,7 +46,7 @@ describe("<Authentication />", () => {
     const component = shallow(
       <Authentication
         adapter="memory"
-        url={coudbUrl}
+        url={couchDbUrl}
         login={<Login />}
         signup={<SignUp />}
       />
@@ -65,7 +65,7 @@ describe("<Authentication />", () => {
     const component = mount(
       <Authentication
         adapter="memory"
-        url={coudbUrl}
+        url={couchDbUrl}
         login={<Login />}
         signup={<SignUp />}
       />
@@ -95,7 +95,7 @@ describe("<Authentication />", () => {
     const component = mount(
       <Authentication
         adapter="memory"
-        url={coudbUrl}
+        url={couchDbUrl}
         login={<Login />}
         signup={<SignUp />}
       />
@@ -126,9 +126,28 @@ describe("<Authentication />", () => {
       "Username, password and email are required fields."
     );
   });
+});
 
+const checkCouchDb = async () => {
+  try {
+    await fetch(couchDbUrl);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
+describe("<Authentication /> with CouchDB instance", () => {
   // This is a full end to end test
   it("Can submit <Signup />, create user doc, logout and then <Login />", async () => {
+    const isCouchDbUp = await checkCouchDb();
+    if (!isCouchDbUp) {
+      console.log(
+        "Skipping the end to end test because I do not have a CouchDB instance to work with."
+      );
+      return;
+    }
+
     const username = "test" + Date.now();
     const password = "password";
     const email = "email@example.com";
@@ -155,7 +174,7 @@ describe("<Authentication />", () => {
       <Authentication
         debug={false}
         adapter="memory"
-        url={coudbUrl}
+        url={couchDbUrl}
         login={<Login />}
         signup={<SignUp />}
       >
@@ -246,12 +265,12 @@ describe("<Authentication />", () => {
 
     // Now we need to cleanup the user that we created
     const userUrl =
-      coudbUrl.substring(0, 7) +
+      couchDbUrl.substring(0, 7) +
       username +
       ":" +
       password +
       "@" +
-      coudbUrl.substring(7) +
+      couchDbUrl.substring(7) +
       "_users/org.couchdb.user:" +
       username;
 
