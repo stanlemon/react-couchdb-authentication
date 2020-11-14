@@ -3,7 +3,6 @@ import React from "react";
 import PouchDB from "pouchdb";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import waitForExpect from "wait-for-expect";
 import { Authentication, Login, SignUp, withAuthentication } from "../";
 import fetch from "isomorphic-fetch";
 
