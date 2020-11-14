@@ -1,7 +1,8 @@
 /* eslint-disable max-lines-per-function */
 import React from "react";
-import { shallow, mount } from "enzyme";
 import PouchDB from "pouchdb";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import "@testing-library/jest-dom";
 import waitForExpect from "wait-for-expect";
 import { Authentication, Login, SignUp, withAuthentication } from "../";
 import fetch from "isomorphic-fetch";
@@ -14,7 +15,7 @@ const couchDbUrl = process.env.COUCHDB_URL || "http://localhost:5984/";
 describe("<Authentication />", () => {
   it("Throws an error when a database is not specified", () => {
     const t = (): void => {
-      shallow(
+      render(
         <Authentication
           adapter="memory"
           // An empty URL should yield an error
@@ -29,7 +30,7 @@ describe("<Authentication />", () => {
   });
 
   it("Component has <Loading /> when initialized", async () => {
-    const component = shallow(
+    render(
       <Authentication
         adapter="memory"
         url={couchDbUrl}
@@ -39,11 +40,11 @@ describe("<Authentication />", () => {
     );
 
     // Initially the component shows a loading, it has to make a credentials call next
-    expect(component.text()).toBe("Loading...");
+    expect(screen.getByText("Loading...")).toBeInTheDocument();
   });
 
   it("Component renders <Login /> after loading", async () => {
-    const component = shallow(
+    render(
       <Authentication
         adapter="memory"
         url={couchDbUrl}
@@ -52,17 +53,20 @@ describe("<Authentication />", () => {
       />
     );
 
-    // Now check for the loaded state to change, this happens after communication with the remote
-    // couchdb instance, which we are currently mocking with the pouchdb-server
-    await waitForExpect(() => {
-      expect(component.state().loaded).toBe(true);
+    // This element is present before connecting to CouchDB and then should be removed.
+    await waitFor(() => {
+      const loading = screen.queryByText("Loading...");
+      expect(loading).toBeNull(); // it doesn't exist
     });
 
-    expect(component.containsMatchingElement(<Login />)).toBe(true);
+    // Check that our login form is on the page
+    expect(screen.getByLabelText("Username")).toBeInTheDocument();
+    expect(screen.getByLabelText("Password")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Login" })).toBeInTheDocument();
   });
 
   it("Component renders <Signup /> when navigated to", async () => {
-    const component = mount(
+    render(
       <Authentication
         adapter="memory"
         url={couchDbUrl}
@@ -71,28 +75,24 @@ describe("<Authentication />", () => {
       />
     );
 
-    // Now check for the loaded state to change
-    await waitForExpect(() => {
-      expect(component.state().loaded).toBe(true);
+    // This element is present before connecting to CouchDB and then should be removed.
+    await waitFor(() => {
+      const loading = screen.queryByText("Loading...");
+      expect(loading).toBeNull(); // it doesn't exist
     });
 
-    component.update();
+    // On login screen, navigate to signup
+    fireEvent.click(screen.getByTestId("navigate-to-sign-up"));
 
-    // Login component should have gotten a navigation method from the <Authentication /> component,
-    // and calling it should advance to the signup screen
-    component.find("#navigate-to-sign-up").simulate("click");
-
-    // Now check for the loaded state to change
-    await waitForExpect(() => {
-      component.update();
-      expect(component.state().internalRoute).toBe("signup");
-    });
-
-    expect(component.containsMatchingElement(<SignUp />)).toBe(true);
+    // Check that our signup form is on the page
+    expect(screen.getByLabelText("Username")).toBeInTheDocument();
+    expect(screen.getByLabelText("Email")).toBeInTheDocument();
+    expect(screen.getByLabelText("Password")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sign Up" })).toBeInTheDocument();
   });
 
   it("Can submit <Signup />, but errors out with empty data", async () => {
-    const component = mount(
+    render(
       <Authentication
         adapter="memory"
         url={couchDbUrl}
@@ -101,30 +101,25 @@ describe("<Authentication />", () => {
       />
     );
 
-    // Now check for the loaded state to change
-    await waitForExpect(() => {
-      expect(component.state().loaded).toBe(true);
+    // This element is present before connecting to CouchDB and then should be removed.
+    await waitFor(() => {
+      const loading = screen.queryByText("Loading...");
+      expect(loading).toBeNull(); // it doesn't exist
     });
 
-    component.update();
+    // On login screen, navigate to signup
+    fireEvent.click(screen.getByTestId("navigate-to-sign-up"));
 
-    // Login component should have gotten a navigation method from the <Authentication /> component,
-    // and calling it should advance to the signup screen
-    component.find("#navigate-to-sign-up").simulate("click");
+    // Check that our signup form is on the page
+    const signUpButton = screen.getByRole("button", { name: "Sign Up" });
+    expect(signUpButton).toBeInTheDocument();
 
-    component.find("#sign-up-button").simulate("click");
+    // Form is empty, submitting it should yield errors
+    fireEvent.click(signUpButton);
 
-    // Check for our error state to get passed in
-    await waitForExpect(() => {
-      expect(component.state().error).not.toBe(null);
-    });
-
-    // Update the component
-    component.update();
-
-    expect(component.find(".error").text().trim()).toBe(
-      "Username, password and email are required fields."
-    );
+    expect(
+      screen.getByText("Username, password and email are required fields.")
+    ).toBeInTheDocument();
   });
 });
 
@@ -163,14 +158,14 @@ describe("<Authentication /> with CouchDB instance", () => {
         <>
           <h1>Authenticated</h1>
           <h2>Hello {user.name}</h2>
-          <a id="logout" href="#" onClick={logout}>
+          <a data-testid="logout" href="#" onClick={logout}>
             Click to logout
           </a>
         </>
       )
     );
 
-    const component = mount(
+    render(
       <Authentication
         debug={false}
         adapter="memory"
@@ -182,86 +177,72 @@ describe("<Authentication /> with CouchDB instance", () => {
       </Authentication>
     );
 
-    expect(component.state().internalRoute).toBe("login");
-
-    // Now check for the loaded state to change
-    await waitForExpect(() => {
-      expect(component.state().loaded).toBe(true);
+    // This element is present before connecting to CouchDB and then should be removed.
+    await waitFor(() => {
+      const loading = screen.queryByText("Loading...");
+      expect(loading).toBeNull(); // it doesn't exist
     });
 
-    component.update();
+    // On login screen, navigate to signup
+    fireEvent.click(screen.getByTestId("navigate-to-sign-up"));
 
-    // Login component should have gotten a navigation method from the <Authentication /> component,
-    // and calling it should advance to the signup screen
-    component.find("#navigate-to-sign-up").simulate("click");
+    // Check that our signup form is on the page
+    const signUpButton = screen.getByRole("button", { name: "Sign Up" });
+    expect(signUpButton).toBeInTheDocument();
 
-    await waitForExpect(() => {
-      expect(component.state().internalRoute).toBe("signup");
-    });
-
-    component.update();
-
-    // Fill in username
-    component.find("#username").simulate("change", {
+    fireEvent.change(screen.getByLabelText("Username"), {
       target: {
         value: username,
       },
     });
 
     // Fill in email
-    component.find("#email").simulate("change", {
+    fireEvent.change(screen.getByLabelText("Email"), {
       target: {
         value: email,
       },
     });
 
     // Fill in password
-    component.find("#password").simulate("change", {
+    fireEvent.change(screen.getByLabelText("Password"), {
       target: {
         value: password,
       },
     });
 
-    component.find("#sign-up-button").simulate("click");
+    // Submit the form
+    fireEvent.click(signUpButton);
 
-    await waitForExpect(() => {
-      component.update();
-
-      expect(component.find("h1").text()).toBe("Authenticated");
-      expect(component.find("h2").text()).toBe("Hello " + username);
+    await waitFor(() => {
+      expect(screen.getByText("Authenticated")).toBeInTheDocument();
     });
 
-    component.find("#logout").simulate("click");
+    expect(screen.getByText("Hello " + username)).toBeInTheDocument();
 
-    await waitForExpect(() => {
-      expect(component.state().user).toBe(null);
-      expect(component.state().authenticated).toBe(false);
+    fireEvent.click(screen.getByTestId("logout"));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Login" })).toBeInTheDocument();
     });
 
-    component.update();
-
-    // Fill in username
-    component.find("#username").simulate("change", {
+    fireEvent.change(screen.getByLabelText("Username"), {
       target: {
         value: username,
       },
     });
 
     // Fill in password
-    component.find("#password").simulate("change", {
+    fireEvent.change(screen.getByLabelText("Password"), {
       target: {
         value: password,
       },
     });
 
-    component.find("#login-button").simulate("click");
+    fireEvent.click(screen.getByRole("button", { name: "Login" }));
 
-    // User was able to login
-    await waitForExpect(() => {
-      expect(component.state().user.name).toBe(username);
+    await waitFor(() => {
+      expect(screen.getByText("Authenticated")).toBeInTheDocument();
     });
-
-    await component.unmount();
 
     // Now we need to cleanup the user that we created
     const userUrl =
