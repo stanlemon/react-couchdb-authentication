@@ -5,6 +5,7 @@ import { Login } from "./Login";
 import { LoginView } from "./LoginView";
 import { SignUp } from "./SignUp";
 import { SignUpView } from "./SignUpView";
+import { Buffer } from "buffer";
 
 const ROUTE_LOGIN = "login";
 const ROUTE_SIGNUP = "signup";
