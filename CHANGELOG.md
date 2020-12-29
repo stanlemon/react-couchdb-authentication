@@ -1,6 +1,10 @@
 # Changelog
 
-## 4.0.1 (July 12, 2020)
+## 0.5.0 (December 29, 2020)
+
+* Dependency updates and cleanup.
+
+## 0.4.1 (July 12, 2020)
 
 * `<Login />` and `<SignUp />` no longer require properties other than `component`, making them easier to use in contexts where `scaffold` is set to `false`.
 
