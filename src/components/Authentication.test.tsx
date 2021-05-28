@@ -6,6 +6,8 @@ import "@testing-library/jest-dom";
 import { Authentication, Login, SignUp, withAuthentication } from "../";
 import fetch from "isomorphic-fetch";
 
+window.setImmediate = window.setInterval;
+
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 PouchDB.plugin(require("pouchdb-adapter-memory"));
 
@@ -136,6 +138,7 @@ describe("<Authentication /> with CouchDB instance", () => {
   it("Can submit <Signup />, create user doc, logout and then <Login />", async () => {
     const isCouchDbUp = await checkCouchDb();
     if (!isCouchDbUp) {
+      /* eslint-disable no-console */
       console.log(
         "Skipping the end to end test because I do not have a CouchDB instance to work with."
       );

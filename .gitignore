@@ -1,14 +1,10 @@
+.DS_Store
+
 ## Installed dependencies
 node_modules/
 
 ## Typescript's output & definition files
 dist/
-
-## Parcel's disk cache
-.cache/
-
-## Parcel's output for serving
-out/
 
 ## PouchDB data
 local/
