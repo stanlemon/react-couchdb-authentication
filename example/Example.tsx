@@ -44,7 +44,7 @@ function Example() {
         // Run everything a little faster, for testing
         sessionInterval={3000}
         // The example app is accessed on localhost, so this is helpful testing cross-origin shenanigans
-        url="http://localhost:5984/"
+        url="/couchdb/"
       >
         <App />
       </Authentication>

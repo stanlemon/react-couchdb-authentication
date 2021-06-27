@@ -26,6 +26,10 @@ curl -X PUT localhost:5984/_node/_local/_config/couch_peruser/delete_dbs -d "\"t
 
 Enabling these settings ensures that once a user signs up, their dedicated database is setup (and vice versa when their user is deleted).
 
+You will also need to ensure that the __user_ database is created and can be written to by any user. Note that the security of this database changed in CouchDB 3, so it's not open by default anymore.
+
+It is highly recommended that you setup a proxy to your couchdb instance so that your webapp and the instance can be accessed through the same domain. That is how the example app works.
+
 ## Example
 
 The `<Authentication/>` component is easy to use, simply wrap your `<App />` and use the provided `<Login />` and `<SignUp />` components to get going. You can customize your login and signup views later.

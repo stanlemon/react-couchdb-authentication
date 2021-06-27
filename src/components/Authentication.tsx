@@ -16,6 +16,10 @@ interface Props {
    */
   children?: React.ReactElement;
   /**
+   * Name of the local PouchDB database, defaults to "user".
+   */
+  localDbName: string;
+  /**
    * Adapter for use by the local PouchDB instance, defaults to "idb".
    */
   adapter: string;
@@ -95,6 +99,7 @@ export class Authentication extends React.Component<Props, State> {
     loading: <>Loading...</>,
     debug: false,
     sync: true,
+    localDbName: "user",
     adapter: "idb",
     sessionInterval: 15000,
     scaffold: true,
@@ -129,7 +134,7 @@ export class Authentication extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    this.#localDb = new PouchDB("user", {
+    this.#localDb = new PouchDB(this.props.localDbName, {
       adapter: this.props.adapter,
     });
   }
@@ -264,13 +269,10 @@ export class Authentication extends React.Component<Props, State> {
       this.state.user &&
       this.state.user.name
     ) {
-      // This is not exposed via the TypeScript definition for PouchDB.Database
-      // but it is added by the HTTP adapter, and we've accounted for it on the property
-      const user = await this.#remoteDb
-        .fetch(`../_users/org.couchdb.user:${this.state.user.name}`)
-        .then((d) => d.json());
-
-      return user;
+      const user = await this.fetch(
+        `${this.props.url}/_users/org.couchdb.user:${this.state.user.name}`
+      );
+      return user as { name: string };
     } else {
       const session = await this.fetch<{
         userCtx: { name: string };

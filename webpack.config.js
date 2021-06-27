@@ -13,6 +13,12 @@ module.exports = {
   devServer: {
     hot: true,
     historyApiFallback: true,
+    proxy: {
+      "/couchdb": {
+        target: "http://localhost:5984/",
+        pathRewrite: { '^/couchdb': '' },
+      }
+    },
   },
   module: {
     rules: [

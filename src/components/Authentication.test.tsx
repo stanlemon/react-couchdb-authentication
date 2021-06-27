@@ -6,10 +6,8 @@ import "@testing-library/jest-dom";
 import { Authentication, Login, SignUp, withAuthentication } from "../";
 import fetch from "isomorphic-fetch";
 
-window.setImmediate = window.setInterval;
-
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-PouchDB.plugin(require("pouchdb-adapter-memory"));
+PouchDB.plugin(require("pouchdb-adapter-node-websql"));
 
 const couchDbUrl = process.env.COUCHDB_URL || "http://localhost:5984/";
 
@@ -18,7 +16,8 @@ describe("<Authentication />", () => {
     const t = (): void => {
       render(
         <Authentication
-          adapter="memory"
+          localDbName=":memory:"
+          adapter="websql"
           // An empty URL should yield an error
           url=""
           login={<Login />}
@@ -33,7 +32,8 @@ describe("<Authentication />", () => {
   it("Component has <Loading /> when initialized", async () => {
     render(
       <Authentication
-        adapter="memory"
+        localDbName=":memory:"
+        adapter="websql"
         url={couchDbUrl}
         login={<Login />}
         signup={<SignUp />}
@@ -47,7 +47,8 @@ describe("<Authentication />", () => {
   it("Component renders <Login /> after loading", async () => {
     render(
       <Authentication
-        adapter="memory"
+        localDbName=":memory:"
+        adapter="websql"
         url={couchDbUrl}
         login={<Login />}
         signup={<SignUp />}
@@ -69,7 +70,8 @@ describe("<Authentication />", () => {
   it("Component renders <Signup /> when navigated to", async () => {
     render(
       <Authentication
-        adapter="memory"
+        localDbName=":memory:"
+        adapter="websql"
         url={couchDbUrl}
         login={<Login />}
         signup={<SignUp />}
@@ -95,7 +97,8 @@ describe("<Authentication />", () => {
   it("Can submit <Signup />, but errors out with empty data", async () => {
     render(
       <Authentication
-        adapter="memory"
+        localDbName=":memory:"
+        adapter="websql"
         url={couchDbUrl}
         login={<Login />}
         signup={<SignUp />}
@@ -170,7 +173,8 @@ describe("<Authentication /> with CouchDB instance", () => {
     render(
       <Authentication
         debug={false}
-        adapter="memory"
+        localDbName=":memory:"
+        adapter="websql"
         url={couchDbUrl}
         login={<Login />}
         signup={<SignUp />}
