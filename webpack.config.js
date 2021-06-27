@@ -16,8 +16,10 @@ module.exports = {
     proxy: {
       "/couchdb": {
         target: "http://localhost:5984/",
-        pathRewrite: { '^/couchdb': '' },
-      }
+        pathRewrite: {
+          "^/couchdb": "",
+        },
+      },
     },
   },
   module: {
