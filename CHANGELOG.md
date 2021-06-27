@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0 (June 27, 2021)
+
+* Dependency updates
+* Fix user profile loading bug
+* Example app now proxies CouchDB
+
 ## 0.5.0 (December 29, 2020)
 
 * Dependency updates and cleanup.
