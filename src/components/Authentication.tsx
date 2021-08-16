@@ -156,6 +156,9 @@ export class Authentication extends React.Component<Props, State> {
   }
 
   private getUserDb(username: string): string {
+    if (!username) {
+      return null;
+    }
     const buffer = Buffer.from(username);
     const hexUsername = buffer.toString("hex");
     return "userdb-" + hexUsername;
@@ -333,13 +336,35 @@ export class Authentication extends React.Component<Props, State> {
     }
 
     try {
-      const user = await this.fetch<{ name: string }>(
+      type UserResponse = {
+        name: string;
+      };
+
+      type UserErrorResponse = {
+        error: string;
+        reason: string;
+      };
+
+      const response = await this.fetch<UserResponse | UserErrorResponse>(
         this.props.url + "_session",
         {
           method: "POST",
           body: JSON.stringify({ username, password }),
         }
       );
+
+      const userError = response as UserErrorResponse;
+
+      // If the login fails, set the reason as error and make sure we show as unauthenticated
+      if (!userError || userError.error) {
+        this.setState({
+          authenticated: false,
+          error: userError.reason,
+        });
+        return;
+      }
+
+      const user = response as UserResponse;
 
       this.setState({ authenticated: true, user });
 
