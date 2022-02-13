@@ -8,9 +8,7 @@ export function Authenticated({
 }): React.ReactElement {
   return (
     <Context.Consumer>
-      {({ authenticated }: { authenticated: boolean }) =>
-        authenticated ? children : null
-      }
+      {({ authenticated }) => (authenticated ? children : null)}
     </Context.Consumer>
   );
 }

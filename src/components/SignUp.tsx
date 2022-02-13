@@ -3,7 +3,7 @@ import { Context } from "./Authentication";
 import { SignUpView, SignUpViewProps } from "./SignUpView";
 
 export interface SignUpProps {
-  component?: React.ComponentType<SignUpViewProps>;
+  component: React.ComponentType<SignUpViewProps>;
 }
 
 export class SignUp extends React.Component<SignUpProps> {

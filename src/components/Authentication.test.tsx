@@ -153,13 +153,7 @@ describe("<Authentication /> with CouchDB instance", () => {
     const email = "email@example.com";
 
     const App = withAuthentication(
-      ({
-        user,
-        logout,
-      }: {
-        user?: { name: string; email: string };
-        logout?: () => void;
-      }): React.ReactElement => (
+      ({ user, logout }): React.ReactElement => (
         <>
           <h1>Authenticated</h1>
           <h2>Hello {user.name}</h2>

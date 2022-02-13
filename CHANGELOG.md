@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.7.0 (Februayr 12, 2022)
+
+* Improved Typescript support.
 ## 0.6.0 (June 27, 2021)
 
 * Dependency updates

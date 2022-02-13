@@ -8,10 +8,14 @@ type Props = {
   user: { name: string; email: string };
 };
 
+//): React.FunctionComponent<Omit<P, "putDocument"> & PassThruDocumentProps> {
+
 export function withAuthentication(component: React.ComponentType<Props>) {
-  return (): React.ReactElement => (
+  return () => (
     <Context.Consumer>
-      {(props: Props) => React.createElement(component, props)}
+      {({ db, remoteDb, logout, user }) =>
+        React.createElement(component, { db, remoteDb, logout, user } as Props)
+      }
     </Context.Consumer>
   );
 }

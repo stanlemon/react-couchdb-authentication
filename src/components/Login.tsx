@@ -3,7 +3,7 @@ import { Context } from "./Authentication";
 import { LoginView, LoginViewProps } from "./LoginView";
 
 export interface LoginProps {
-  component?: React.ComponentType<LoginViewProps>;
+  component: React.ComponentType<LoginViewProps>;
 }
 
 export class Login extends React.Component<LoginProps> {
@@ -25,15 +25,7 @@ export class Login extends React.Component<LoginProps> {
   render(): React.ReactNode {
     return (
       <Context.Consumer>
-        {({
-          error,
-          login,
-          navigateToSignUp,
-        }: {
-          error: string;
-          login(username: string, password: string): void;
-          navigateToSignUp(): void;
-        }) => {
+        {({ error, login, navigateToSignUp }) => {
           const props = {
             error,
             login: (): void => {

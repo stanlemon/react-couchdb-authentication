@@ -87,7 +87,43 @@ interface State {
   };
 }
 
-export const Context = React.createContext({});
+export type ContextType = {
+  db?: PouchDB.Database;
+  remoteDb?: PouchDB.Database;
+  authenticated: boolean;
+  user?: {
+    name: string;
+  };
+  error: string;
+  login(username: string, password: string): void;
+  logout(): void;
+  signUp(username: string, password: string, email: string): Promise<void>;
+  navigateToLogin(): void;
+  navigateToSignUp(): void;
+};
+
+export const Context = React.createContext<ContextType>({
+  db: undefined,
+  remoteDb: undefined,
+  authenticated: false,
+  user: undefined,
+  error: "",
+  login: (username, password) => {
+    // Empty
+  },
+  logout: () => {
+    // Empty
+  },
+  signUp: (username, password, email) => {
+    return Promise.resolve();
+  },
+  navigateToLogin: () => {
+    // Empty
+  },
+  navigateToSignUp: () => {
+    // Empty
+  },
+});
 
 /**
  * Wrap components behind CouchDB authentication and sync the user's database locally.
@@ -107,19 +143,19 @@ export class Authentication extends React.Component<Props, State> {
 
   state = {
     // If errors bubble up and need to be provided to the login screen
-    error: null,
+    error: undefined,
     // Used to denote before/after we've attempted an initial login
     loaded: false,
     // Whether or not a user is logged in
     authenticated: false,
     // User object, if they are logged in
-    user: null,
+    user: undefined,
     // Internal route path, defaults to the login screen
     internalRoute: ROUTE_LOGIN,
   } as State;
 
   #localDb: PouchDB.Database;
-  #remoteDb: PouchDB.Database &
+  #remoteDb?: PouchDB.Database &
     // Does this look weird? It should!
     // The fetch method is added by the http adapter, but it's not exported.
     // In order to use it below we declare it here, but to avoid other problems
@@ -128,8 +164,8 @@ export class Authentication extends React.Component<Props, State> {
       fetch(url: string | Request, opts?: RequestInit): Promise<Response>;
     }>;
 
-  #syncHandler: PouchDB.Replication.Sync<Record<string, unknown>>;
-  #checkSessionInterval: number;
+  #syncHandler?: PouchDB.Replication.Sync<Record<string, unknown>>;
+  #checkSessionInterval?: number;
 
   constructor(props: Props) {
     super(props);
@@ -155,7 +191,7 @@ export class Authentication extends React.Component<Props, State> {
     }
   }
 
-  private getUserDb(username: string): string {
+  private getUserDb(username: string): string | null {
     if (!username) {
       return null;
     }
@@ -308,7 +344,7 @@ export class Authentication extends React.Component<Props, State> {
       }
     } catch (err) {
       this.error(err);
-      this.setState({ loaded: true, user: null, authenticated: false });
+      this.setState({ loaded: true, user: undefined, authenticated: false });
     }
   }
 
@@ -320,7 +356,7 @@ export class Authentication extends React.Component<Props, State> {
 
       // Clear the user and redirect them to our login screen
       this.setState({
-        user: null,
+        user: undefined,
         authenticated: false,
         internalRoute: ROUTE_LOGIN,
       });
@@ -370,12 +406,12 @@ export class Authentication extends React.Component<Props, State> {
 
       this.setupDb(username, password);
     } catch (err) {
-      this.setState({ authenticated: false, user: null });
+      this.setState({ authenticated: false, user: undefined });
       this.error(err);
     }
   };
 
-  private setupDb(username?: string, password?: string): Promise<void> {
+  private setupDb(username?: string, password?: string): void {
     const opts = {
       skip_setup: true,
       fetch: (url: string, opts: RequestInit): Promise<Response> => {
@@ -392,7 +428,11 @@ export class Authentication extends React.Component<Props, State> {
             },
           }
         : {}),
-    };
+    } as PouchDB.Configuration.RemoteDatabaseConfiguration;
+
+    if (!this.state.user || !this.state.user.name) {
+      return;
+    }
 
     const userDbUrl = this.getUserDbUrl(this.state.user.name);
 
@@ -453,14 +493,14 @@ export class Authentication extends React.Component<Props, State> {
     // Switches to the login screen and clears out any errors
     const navigateToLogin = (): void =>
       this.setState({
-        error: null,
+        error: undefined,
         internalRoute: ROUTE_LOGIN,
       });
 
     // Switches to the sign up screen and clears out any errors
     const navigateToSignUp = (): void =>
       this.setState({
-        error: null,
+        error: undefined,
         internalRoute: ROUTE_SIGNUP,
       });
 
@@ -475,14 +515,14 @@ export class Authentication extends React.Component<Props, State> {
       signUp: this.signUp,
       navigateToLogin,
       navigateToSignUp,
-    };
+    } as ContextType;
 
     return (
       <Context.Provider value={value}>{this.renderChildren()}</Context.Provider>
     );
   }
 
-  private renderChildren(): React.ReactElement {
+  private renderChildren(): React.ReactNode {
     // We have loaded our remote database but we are not authenticated
     if (this.props.scaffold && !this.state.authenticated) {
       if (this.state.internalRoute === ROUTE_SIGNUP) {

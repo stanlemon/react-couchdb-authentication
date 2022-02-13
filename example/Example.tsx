@@ -4,13 +4,7 @@ import { Authentication, withAuthentication } from "../src";
 
 // Our application when a user is logged in.
 const App = withAuthentication(
-  ({
-    user,
-    logout,
-  }: {
-    user?: { name: string; email: string };
-    logout?: () => void;
-  }): React.ReactElement => (
+  ({ user, logout }): React.ReactElement => (
     <>
       <h1>Hello!</h1>
       <h2>
