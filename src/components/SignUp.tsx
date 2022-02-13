@@ -36,8 +36,8 @@ export class SignUp extends React.Component<SignUpProps> {
           navigateToLogin,
         }: {
           error: string;
-          signUp(username: string, password: string, email: string): void;
-          navigateToLogin(): void;
+          signUp: (username: string, password: string, email: string) => void;
+          navigateToLogin: () => void;
         }) => {
           const props = {
             error,
@@ -56,7 +56,10 @@ export class SignUp extends React.Component<SignUpProps> {
             password: this.state.password,
             setPassword: this.#setPassword,
           };
-          return React.createElement(this.props.component, props);
+          return React.createElement(
+            this.props.component,
+            props as SignUpViewProps
+          );
         }}
       </Context.Consumer>
     );

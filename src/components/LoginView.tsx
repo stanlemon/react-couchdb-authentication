@@ -3,11 +3,11 @@ import * as React from "react";
 export interface LoginViewProps {
   error: string;
   username: string;
-  setUsername(event: React.FormEvent<HTMLInputElement>): void;
+  setUsername: (event: React.FormEvent<HTMLInputElement>) => void;
   password: string;
-  setPassword(event: React.FormEvent<HTMLInputElement>): void;
-  login(): void;
-  navigateToSignUp(): void;
+  setPassword: (event: React.FormEvent<HTMLInputElement>) => void;
+  login: () => void;
+  navigateToSignUp: () => void;
 }
 
 export function LoginView(props: LoginViewProps): React.ReactElement {

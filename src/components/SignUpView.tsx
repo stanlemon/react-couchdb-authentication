@@ -3,13 +3,13 @@ import * as React from "react";
 export interface SignUpViewProps {
   error: string;
   username: string;
-  setUsername(event: React.FormEvent<HTMLInputElement>): void;
+  setUsername: (event: React.FormEvent<HTMLInputElement>) => void;
   password: string;
-  setPassword(event: React.FormEvent<HTMLInputElement>): void;
+  setPassword: (event: React.FormEvent<HTMLInputElement>) => void;
   email: string;
-  setEmail(event: React.FormEvent<HTMLInputElement>): void;
-  signUp(): void;
-  navigateToLogin(): void;
+  setEmail: (event: React.FormEvent<HTMLInputElement>) => void;
+  signUp: () => void;
+  navigateToLogin: () => void;
 }
 
 export function SignUpView(props: SignUpViewProps): React.ReactElement {

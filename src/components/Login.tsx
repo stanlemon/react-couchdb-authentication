@@ -37,7 +37,10 @@ export class Login extends React.Component<LoginProps> {
             password: this.state.password,
             setPassword: this.#setPassword,
           };
-          return React.createElement(this.props.component, props);
+          return React.createElement(
+            this.props.component,
+            props as LoginViewProps
+          );
         }}
       </Context.Consumer>
     );
