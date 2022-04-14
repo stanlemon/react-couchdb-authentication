@@ -6,8 +6,13 @@ import "@testing-library/jest-dom";
 import { Authentication, Login, SignUp, withAuthentication } from "../";
 import fetch from "isomorphic-fetch";
 
+if (!window.setImmediate) {
+  // This is as gross as it looks. It's a workaround for using PouchDB in tests.
+  window.setImmediate = window.setTimeout as unknown as typeof setImmediate;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-PouchDB.plugin(require("pouchdb-adapter-node-websql"));
+PouchDB.plugin(require("pouchdb-adapter-memory"));
 
 const couchDbUrl = process.env.COUCHDB_URL || "http://localhost:5984/";
 
@@ -16,8 +21,7 @@ describe("<Authentication />", () => {
     const t = (): void => {
       render(
         <Authentication
-          localDbName=":memory:"
-          adapter="websql"
+          adapter="memory"
           // An empty URL should yield an error
           url=""
           login={<Login />}
@@ -26,14 +30,13 @@ describe("<Authentication />", () => {
       );
     };
 
-    expect(t).toThrow(Error);
+    expect(t).toThrow("A url to a couchdb instance is required");
   });
 
-  it("Component has <Loading /> when initialized", async () => {
+  it("Component has <Loading /> when initialized", () => {
     render(
       <Authentication
-        localDbName=":memory:"
-        adapter="websql"
+        adapter="memory"
         url={couchDbUrl}
         login={<Login />}
         signup={<SignUp />}
@@ -47,8 +50,7 @@ describe("<Authentication />", () => {
   it("Component renders <Login /> after loading", async () => {
     render(
       <Authentication
-        localDbName=":memory:"
-        adapter="websql"
+        adapter="memory"
         url={couchDbUrl}
         login={<Login />}
         signup={<SignUp />}
@@ -70,8 +72,7 @@ describe("<Authentication />", () => {
   it("Component renders <Signup /> when navigated to", async () => {
     render(
       <Authentication
-        localDbName=":memory:"
-        adapter="websql"
+        adapter="memory"
         url={couchDbUrl}
         login={<Login />}
         signup={<SignUp />}
@@ -97,8 +98,7 @@ describe("<Authentication />", () => {
   it("Can submit <Signup />, but errors out with empty data", async () => {
     render(
       <Authentication
-        localDbName=":memory:"
-        adapter="websql"
+        adapter="memory"
         url={couchDbUrl}
         login={<Login />}
         signup={<SignUp />}
@@ -148,7 +148,7 @@ describe("<Authentication /> with CouchDB instance", () => {
       return;
     }
 
-    const username = "test" + Date.now();
+    const username = "test" + Date.now().toString();
     const password = "password";
     const email = "email@example.com";
 
@@ -157,9 +157,9 @@ describe("<Authentication /> with CouchDB instance", () => {
         <>
           <h1>Authenticated</h1>
           <h2>Hello {user.name}</h2>
-          <a data-testid="logout" href="#" onClick={logout}>
+          <button data-testid="logout" onClick={logout}>
             Click to logout
-          </a>
+          </button>
         </>
       )
     );
@@ -167,8 +167,7 @@ describe("<Authentication /> with CouchDB instance", () => {
     render(
       <Authentication
         debug={false}
-        localDbName=":memory:"
-        adapter="websql"
+        adapter="memory"
         url={couchDbUrl}
         login={<Login />}
         signup={<SignUp />}
@@ -255,13 +254,15 @@ describe("<Authentication /> with CouchDB instance", () => {
       "_users/org.couchdb.user:" +
       username;
 
-    const user = await fetch(userUrl).then((r) => r.json());
+    const userResponse = await fetch(userUrl);
+    const user = (await userResponse.json()) as { _rev: string };
 
-    const done = await fetch(userUrl + "?rev=" + user._rev, {
+    const userDeleteResponse = await fetch(userUrl + "?rev=" + user._rev, {
       method: "DELETE",
-    }).then((r) => r.json());
+    });
+    const userDelete = (await userDeleteResponse.json()) as { ok: boolean };
 
     // We successfully delete the user that we created
-    expect(done.ok).toBe(true);
+    expect(userDelete.ok).toBe(true);
   });
 });

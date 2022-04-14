@@ -52,9 +52,9 @@ export function SignUpView(props: SignUpViewProps): React.ReactElement {
         Sign Up
       </button>
       <p>
-        <a href="#" id="navigate-to-login" onClick={clickToLogin}>
+        <button id="navigate-to-login" onClick={clickToLogin}>
           Return to login.
-        </a>
+        </button>
       </p>
     </div>
   );

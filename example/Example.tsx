@@ -1,5 +1,4 @@
-import React from "react";
-import ReactDOM from "react-dom";
+import { createRoot } from "react-dom/client";
 import { Authentication, withAuthentication } from "../src";
 
 // Our application when a user is logged in.
@@ -12,7 +11,7 @@ const App = withAuthentication(
         <a href={`mailto:${user.email}`}>{user.name}</a>.
       </h2>
       <p>
-        <a onClick={logout}>Click here to logout.</a>
+        <button onClick={logout}>Click here to logout.</button>
       </p>
     </>
   )
@@ -46,8 +45,7 @@ function Example() {
   );
 }
 
-ReactDOM.render(<Example />, document.getElementById("root"));
-
-if (module.hot) {
-  module.hot.accept();
-}
+const root = createRoot(
+  document.body.appendChild(document.createElement("div"))
+);
+root.render(<Example />);

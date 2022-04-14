@@ -6,6 +6,11 @@ import { LoginView } from "./LoginView";
 import { SignUp } from "./SignUp";
 import { SignUpView } from "./SignUpView";
 import { Buffer } from "buffer";
+import {
+  setIntervalAsync,
+  clearIntervalAsync,
+  SetIntervalAsyncTimer,
+} from "set-interval-async/dynamic";
 
 const ROUTE_LOGIN = "login";
 const ROUTE_SIGNUP = "signup";
@@ -95,7 +100,7 @@ export type ContextType = {
     name: string;
   };
   error: string;
-  login(username: string, password: string): void;
+  login(username: string, password: string): void | Promise<void>;
   logout(): void;
   signUp(username: string, password: string, email: string): Promise<void>;
   navigateToLogin(): void;
@@ -165,10 +170,14 @@ export class Authentication extends React.Component<Props, State> {
     }>;
 
   #syncHandler?: PouchDB.Replication.Sync<Record<string, unknown>>;
-  #checkSessionInterval?: number;
+  #checkSessionInterval?: SetIntervalAsyncTimer;
 
   constructor(props: Props) {
     super(props);
+
+    if (!this.props.url) {
+      throw new Error("A url to a couchdb instance is required");
+    }
 
     this.#localDb = new PouchDB(this.props.localDbName, {
       adapter: this.props.adapter,
@@ -176,7 +185,7 @@ export class Authentication extends React.Component<Props, State> {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private log(...args: any): void {
+  private log(...args: any[]): void {
     if (this.props.debug) {
       // eslint-disable-next-line no-console
       console.log.apply(null, args);
@@ -184,7 +193,7 @@ export class Authentication extends React.Component<Props, State> {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private error(...args: any): void {
+  private error(...args: any[]): void {
     if (this.props.debug) {
       // eslint-disable-next-line no-console
       console.error.apply(null, args);
@@ -203,7 +212,7 @@ export class Authentication extends React.Component<Props, State> {
   private getUserDbUrl(username: string): string {
     return (
       this.props.url.substring(0, this.props.url.lastIndexOf("/") + 1) +
-      this.getUserDb(username)
+      (this.getUserDb(username) || "")
     );
   }
 
@@ -296,7 +305,7 @@ export class Authentication extends React.Component<Props, State> {
           "Content-Type": "application/json",
         },
       },
-    }).then((r) => r.json());
+    }).then((r) => r.json() as unknown as T);
   }
 
   private async grabSession(): Promise<{ name: string }> {
@@ -310,7 +319,8 @@ export class Authentication extends React.Component<Props, State> {
     ) {
       const user = await this.fetch(
         `${this.props.url}/_users/org.couchdb.user:${this.state.user.name}`
-      );
+      ).catch((err) => this.error(err));
+
       return user as { name: string };
     } else {
       const session = await this.fetch<{
@@ -340,7 +350,7 @@ export class Authentication extends React.Component<Props, State> {
         this.log("User is already logged in, setting up db.");
         this.setupDb();
         // Immediately check the session again so we fully load the user
-        this.checkSession();
+        await this.checkSession();
       }
     } catch (err) {
       this.error(err);
@@ -348,21 +358,23 @@ export class Authentication extends React.Component<Props, State> {
     }
   }
 
-  private logout = async (): Promise<void> => {
-    try {
-      await this.fetch(this.props.url + "_session", {
-        method: "DELETE",
-      });
+  private logout = (): void => {
+    void (async () => {
+      try {
+        await this.fetch(this.props.url + "_session", {
+          method: "DELETE",
+        });
 
-      // Clear the user and redirect them to our login screen
-      this.setState({
-        user: undefined,
-        authenticated: false,
-        internalRoute: ROUTE_LOGIN,
-      });
-    } catch (err) {
-      this.error(err);
-    }
+        // Clear the user and redirect them to our login screen
+        this.setState({
+          user: undefined,
+          authenticated: false,
+          internalRoute: ROUTE_LOGIN,
+        });
+      } catch (err) {
+        this.error(err);
+      }
+    })();
   };
 
   private login = async (username: string, password: string): Promise<void> => {
@@ -455,27 +467,26 @@ export class Authentication extends React.Component<Props, State> {
       .on("change", (info) => this.log("Change", info))
       .on("paused", (info) => this.log("Syncing Paused", info))
       .on("complete", (info) => this.log("Complete", info))
-      .on("error", (err) => this.error("Error", err));
+      .on("error", (err) => this.error("Error", err))
+      .catch((err) => this.error(err));
   }
 
-  componentDidMount(): void {
-    if (!this.props.url) {
-      throw new Error("A url to a couchdb instance is required");
-    }
+  async componentDidMount(): Promise<void> {
+    await this.checkSession();
 
-    this.checkSession();
-
-    this.#checkSessionInterval = window.setInterval(() => {
-      this.checkSession();
+    this.#checkSessionInterval = setIntervalAsync(async () => {
+      await this.checkSession();
     }, this.props.sessionInterval);
   }
 
   async componentWillUnmount(): Promise<void> {
-    clearInterval(this.#checkSessionInterval);
+    if (this.#checkSessionInterval) {
+      await clearIntervalAsync(this.#checkSessionInterval);
+    }
 
     // Will not be set if sync has been disabled
     if (this.#syncHandler) {
-      await this.#syncHandler.cancel();
+      this.#syncHandler.cancel();
     }
 
     if (this.#remoteDb) {

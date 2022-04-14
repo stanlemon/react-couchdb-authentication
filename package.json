@@ -1,6 +1,6 @@
 {
   "name": "@stanlemon/react-couchdb-authentication",
-  "version": "0.7.2",
+  "version": "0.8.0",
   "description": "React component for authenticating against a CouchDB user db and syncing it locally with PouchDB.",
   "keywords": [
     "react",
@@ -9,16 +9,19 @@
     "authentication",
     "app"
   ],
-  "main": "./dist/index.js",
+  "type": "module",
+  "export": "./dist/index.js",
   "files": [
     "dist/"
   ],
   "scripts": {
-    "build": "rm -rf ./dist/** && tsc -d",
-    "watch": "tsc -w",
     "test": "jest",
+    "test:watch": "jest -w",
+    "test:coverage": "jest --coverage",
     "lint": "eslint --ext js,jsx,ts,tsx ./src/ ./example/",
-    "example": "webpack serve"
+    "lint:format": "eslint --fix --ext js,jsx,ts,tsx ./src/ ./example/",
+    "build": "rm -rf ./dist/** && tsc",
+    "example": "WEBDEV_ENTRY=./example/Example.tsx webpack serve"
   },
   "author": "Stan Lemon <stanlemon@users.noreply.github.com>",
   "repository": {
@@ -26,71 +29,30 @@
     "url": "https://github.com/stanlemon/react-couchdb-authentication"
   },
   "license": "MIT",
-  "browserslist": [
-    "last 1 year, not dead",
-    "edge > 18",
-    "not ie 11",
-    "not ie_mob 11",
-    "not samsung < 1000",
-    "not opera < 1000",
-    "not kaios < 1000",
-    "not android < 1000",
-    "not and_qq < 1000"
-  ],
-  "jest": {
-    "testEnvironment": "jsdom",
-    "roots": [
-      "./src/"
-    ],
-    "testPathIgnorePatterns": [
-      "/node_modules/",
-      "/out/"
-    ],
-    "transform": {
-      "^.+\\.(js|jsx|ts|tsx)?$": "babel-jest"
-    }
-  },
   "peerDependencies": {
-    "pouchdb": ">=7.2.2",
-    "react": ">=18.0.0"
+    "pouchdb": ">=7.1.0",
+    "react": ">=17.0.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.17.9",
-    "@babel/preset-env": "^7.16.11",
-    "@babel/preset-react": "^7.16.7",
-    "@babel/preset-typescript": "^7.16.7",
+    "@stanlemon/webdev": "^0.1.30",
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^13.0.0",
     "@types/async-retry": "^1.4.3",
+    "@types/isomorphic-fetch": "^0.0.36",
     "@types/jest": "^27.4.1",
+    "@types/node": "^15.14.9",
     "@types/pouchdb": "^6.4.0",
-    "@types/react": "^18.0.1",
-    "@types/webpack-env": "^1.16.3",
-    "@typescript-eslint/eslint-plugin": "^5.18.0",
-    "@typescript-eslint/parser": "^5.18.0",
-    "babel-jest": "^27.5.1",
-    "babel-loader": "^8.2.4",
-    "eslint": "^8.13.0",
-    "eslint-config-prettier": "^8.5.0",
-    "eslint-plugin-jest": "^26.1.4",
-    "eslint-plugin-prettier": "^4.0.0",
-    "eslint-plugin-react": "^7.29.4",
-    "html-webpack-plugin": "^5.5.0",
+    "@types/react": "^18.0.5",
+    "@types/set-interval-async": "^1.0.0",
     "isomorphic-fetch": "^3.0.0",
-    "jest": "^27.5.1",
-    "pouchdb": "^7.2.2",
-    "pouchdb-adapter-node-websql": "^7.0.0",
-    "prettier": "^2.6.2",
+    "pouchdb": "^7.3.0",
+    "pouchdb-adapter-memory": "^7.3.0",
     "react": "^18.0.0",
-    "react-dom": "^18.0.0",
-    "react-test-renderer": "^18.0.0",
-    "typescript": "^4.6.3",
-    "webpack": "^5.72.0",
-    "webpack-cli": "^4.9.2",
-    "webpack-dev-server": "^4.8.1"
+    "react-dom": "^18.0.0"
   },
   "dependencies": {
     "async-retry": "^1.3.3",
-    "buffer": "^6.0.3"
+    "buffer": "^6.0.3",
+    "set-interval-async": "^2.0.3"
   }
 }

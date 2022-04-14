@@ -51,9 +51,9 @@ export function LoginView(props: LoginViewProps): React.ReactElement {
         Login
       </button>
       <p>
-        <a href="#" data-testid="navigate-to-sign-up" onClick={clickToSignUp}>
+        <button data-testid="navigate-to-sign-up" onClick={clickToSignUp}>
           Or sign up for a new account.
-        </a>
+        </button>
       </p>
     </div>
   );

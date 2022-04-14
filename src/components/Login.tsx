@@ -28,9 +28,8 @@ export class Login extends React.Component<LoginProps> {
         {({ error, login, navigateToSignUp }) => {
           const props = {
             error,
-            login: (): void => {
-              login(this.state.username, this.state.password);
-            },
+            login: (): void | Promise<void> =>
+              login(this.state.username, this.state.password),
             navigateToSignUp,
             username: this.state.username,
             setUsername: this.#setUsername,
