@@ -37,7 +37,7 @@
     "react": ">=17.0.0"
   },
   "devDependencies": {
-    "@stanlemon/webdev": "^0.1.39",
+    "@stanlemon/webdev": "^0.1.42",
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^13.1.1",
     "@types/async-retry": "^1.4.4",
